@@ -4,7 +4,7 @@ import {
     Table,
     TextInput,
     NumberInput,
-    Card
+    Card,
 } from "@mantine/core";
 import { useState } from "react";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
@@ -78,10 +78,10 @@ export const CpmPostForm = () => {
     };
 
     // Funkcja obsługująca zapis i rysowanie wykresu
-    const handleSave = () => {
+    /*const handleSave = () => {
         const graphData = processDataForGoJS(rows);
         console.log(graphData); // Możesz zastąpić to renderowaniem diagramu
-    };
+    };*/
 
     return (
         <div style={{ display: "flex", gap: "2vw", padding: "2vw" }}>
@@ -140,9 +140,9 @@ export const CpmPostForm = () => {
                     <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
                         Dodaj wiersz
                     </Button>
-                    <Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
+                    {/*<Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
                         Zapisz i rysuj wykres
-                    </Button>
+                    </Button>*/}
                 </Container>
             </Card>
 

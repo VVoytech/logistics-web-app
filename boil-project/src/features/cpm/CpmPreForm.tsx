@@ -10,116 +10,81 @@ import { useState } from "react";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import GraphComponent from "./GraphComponent";
 
+// Definicja typu dla danych wierszy
 interface Row {
     id: number;
-    predecessor: string;
+    predecessor: string; // Poprzedzająca czynność (np. "A,B")
     duration: number;
 }
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności (A, B, C, ...)
 
 const processDataForGoJS = (rows: Row[]) => {
-    // Dodajemy węzeł początkowy (startowy)
-    const nodes = [
-        { key: 0, text: "Start" } // Węzeł startowy
-    ];
+    const nodes: { key: string; label: string }[] = [];
+    const links: { from: string; to: string; label: string; duration: number }[] = [];
 
-    const links: { from: number, to: number, label: string, duration: number }[] = [];
-    const nodeMap: { [key: string]: number } = {}; // Mapowanie poprzedników na numery węzłów
-    const mergedPredecessors: { [key: string]: number } = {}; // Zmienna do przechowywania wspólnych węzłów
+    // Dodajemy węzeł startowy z numerem 1
+    nodes.push({ key: "START", label: "1" });
 
-    // Dodajemy węzły dla każdej czynności
+    // Tworzymy węzły dla każdej czynności, zaczynając od numeru 2
     rows.forEach((row, index) => {
-        const currentNode = index + 1; // Węzeł aktualnej czynności
-        const taskLabel = alphabet[index]; // Etykieta czynności (np. A, B, C)
+        const activity = alphabet[index];
+        const nodeNumber = (index + 2).toString(); // Numeracja od 2
+        nodes.push({ key: activity, label: nodeNumber });
+    });
 
-        // Dodajemy węzeł dla aktualnej czynności, jeśli jeszcze nie istnieje
-        if (!nodeMap[taskLabel]) {
-            nodeMap[taskLabel] = currentNode;
-            nodes.push({ key: currentNode, text: taskLabel }); // Tekst to etykieta czynności
-        }
-
-        const predecessors = row.predecessor.split(",").map(p => p.trim());
-
-        // Jeśli brak poprzednika, połączmy z węzłem 0 (startowym)
-        if (row.predecessor.trim() === "-") {
+    // Tworzymy połączenia na podstawie poprzedników
+    rows.forEach((row, index) => {
+        const activity = alphabet[index];
+        if (row.predecessor === "-") {
+            // Jeśli nie ma poprzedników, łączymy z węzłem "1" (startowym)
             links.push({
-                from: 0,
-                to: currentNode,
-                label: `${taskLabel} ${row.duration}`,
-                duration: row.duration
+                from: "START",
+                to: activity,
+                label: "", // Etykieta linii to litera czynności
+                duration: row.duration,
             });
         } else {
-            // Jeśli są poprzednicy, sprawdzamy, czy potrzebujemy połączyć je w jeden wspólny węzeł
-            if (predecessors.length === 1) {
-                // Jeżeli tylko jeden poprzednik, nie ma potrzeby tworzenia wspólnego węzła
-                const predecessorNode = nodeMap[predecessors[0]];
+            const predecessors = row.predecessor.split(",");
+            predecessors.forEach((predecessor) => {
                 links.push({
-                    from: predecessorNode,
-                    to: currentNode,
-                    label: `${taskLabel} ${row.duration}`,
-                    duration: row.duration
+                    from: predecessor.trim(),
+                    to: activity,
+                    label: "", // Etykieta linii to litera czynności
+                    duration: row.duration,
                 });
-            } else {
-                // Jeśli więcej niż jeden poprzednik, musimy połączyć je w jeden węzeł
-                const commonPredecessorKey = predecessors.join(",");
-                let commonNode = mergedPredecessors[commonPredecessorKey];
-
-                if (!commonNode) {
-                    // Tworzymy nowy wspólny węzeł
-                    commonNode = nodes.length + 1;
-                    mergedPredecessors[commonPredecessorKey] = commonNode;
-                    nodes.push({ key: commonNode, text: `Merged ${commonNode}` });
-
-                    // Łączymy poprzedników z nowym wspólnym węzłem
-                    predecessors.forEach(p => {
-                        const predecessorNode = nodeMap[p] || commonNode;
-                        links.push({
-                            from: predecessorNode,
-                            to: commonNode,
-                            label: `Merged ${p}`,
-                            duration: 0
-                        });
-                    });
-                }
-
-                // Teraz połączmy wspólny węzeł z aktualną czynnością
-                links.push({
-                    from: commonNode,
-                    to: currentNode,
-                    label: `${taskLabel} ${row.duration}`,
-                    duration: row.duration
-                });
-            }
+            });
         }
     });
 
     return { nodes, links };
 };
 
-
 export const CpmPreForm = () => {
     const [rows, setRows] = useState<Row[]>([{ id: 1, predecessor: "", duration: 0 }]);
 
+    // Funkcja dodająca nowy wiersz
     const addRow = () => {
         setRows([...rows, { id: rows.length + 1, predecessor: "", duration: 0 }]);
     };
 
+    // Funkcja usuwająca wiersz
     const removeRow = (id: number) => {
         setRows(rows.filter((row) => row.id !== id));
     };
 
+    // Funkcja aktualizująca wartość pola w wierszu
     const updateRow = (id: number, field: keyof Row, value: string | number | null) => {
         setRows(rows.map((row) =>
             row.id === id ? { ...row, [field]: value ?? 0 } : row
         ));
     };
 
-    const handleSave = () => {
+    // Funkcja obsługująca zapis i rysowanie wykresu
+    /*const handleSave = () => {
         const graphData = processDataForGoJS(rows);
-        // Przesyłamy dane do komponentu GraphComponent
         console.log(graphData); // Możesz zastąpić to renderowaniem diagramu
-    };
+    };*/
 
     return (
         <div style={{ display: "flex", gap: "2vw", padding: "2vw" }}>
@@ -153,7 +118,7 @@ export const CpmPreForm = () => {
                                     <TextInput
                                         value={row.predecessor}
                                         onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
-                                        placeholder="Poprzednia czynność"
+                                        placeholder="Poprzednia czynność (np. A,B lub -)"
                                     />
                                 </td>
                                 <td>
@@ -178,9 +143,9 @@ export const CpmPreForm = () => {
                     <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
                         Dodaj wiersz
                     </Button>
-                    <Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
+                    {/*<Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
                         Zapisz i rysuj wykres
-                    </Button>
+                    </Button>*/}
                 </Container>
             </Card>
 
