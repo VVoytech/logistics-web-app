@@ -1,17 +1,18 @@
 import {
     Button,
-    Container,
     Table,
     TextInput,
     NumberInput,
     Group,
     AppShell,
     useMantineTheme,
-    Burger
+    Burger,
+    Grid,
+    Paper,
 } from "@mantine/core";
 import { useState } from "react";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
-import {useDisclosure} from "@mantine/hooks";
+import { useDisclosure } from "@mantine/hooks";
 import logo from '../../assets/logo.png';
 
 interface Row {
@@ -45,9 +46,7 @@ export const CpmPreForm = () => {
     return (
         <AppShell
             padding="md"
-            header={{
-                height: 60,
-            }}
+            header={{ height: 60 }}
             navbar={{
                 width: 300,
                 breakpoint: "sm",
@@ -56,66 +55,68 @@ export const CpmPreForm = () => {
         >
             <AppShell.Header style={{ backgroundColor: theme.colors.blue[6], color: "white" }}>
                 <Group h="100%" px="md" justify="space-between">
-
-                    <img
-                        src={logo}
-                        alt="Logo"
-                        style={{height: 40}}
-                    />
-
-                    <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="white"/>
+                    <img src={logo} alt="Logo" style={{ height: 40 }} />
+                    <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" color="white" />
                 </Group>
             </AppShell.Header>
 
-            <AppShell.Navbar p="md" style={{backgroundColor: theme.colors.gray[0]}}>
-                <Container>
-                    <Table striped highlightOnHover>
-                        <thead>
-                        <tr>
-                            <th>Czynności</th>
-                            <th>Czynność poprzedzająca</th>
-                            <th>Czas trwania</th>
-                            <th>Usuń</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {rows.map((row, index) => (
-                            <tr key={row.id}>
-                                <td>{alphabet[index] || "-"}</td> {/* Nazwa automatyczna */}
-                                <td>
-                                    <TextInput
-                                        value={row.predecessor}
-                                        onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
-                                        placeholder="Poprzednia czynność"
-                                    />
-                                </td>
-                                <td>
-                                    <NumberInput
-                                        value={row.duration}
-                                        onChange={(value) => updateRow(row.id, "duration", value)}
-                                        min={0}
-                                        step={1}
-                                        hideControls
-                                        placeholder="Czas"
-                                    />
-                                </td>
-                                <td>
-                                    <Button color="red" onClick={() => removeRow(row.id)} disabled={rows.length === 1}>
-                                        <IconTrash size={18} />
-                                    </Button>
-                                </td>
-                            </tr>
-                        ))}
-                        </tbody>
-                    </Table>
-                    <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
-                        Dodaj wiersz
-                    </Button>
-                </Container>
-            </AppShell.Navbar>
+            <AppShell.Main>
+                <Grid gutter="md">
+                    {/* Lewa strona - Tabela */}
+                    <Grid.Col span={{ base: 12, md: 6 }}>
+                        <Paper p="md" shadow="sm" style={{ backgroundColor: theme.colors.gray[0] }}>
+                            <Table striped highlightOnHover>
+                                <thead>
+                                <tr>
+                                    <th>Czynności</th>
+                                    <th>Czynność poprzedzająca</th>
+                                    <th>Czas trwania</th>
+                                    <th>Usuń</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {rows.map((row, index) => (
+                                    <tr key={row.id}>
+                                        <td>{alphabet[index] || "-"}</td>
+                                        <td>
+                                            <TextInput
+                                                value={row.predecessor}
+                                                onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
+                                                placeholder="Poprzednia czynność"
+                                            />
+                                        </td>
+                                        <td>
+                                            <NumberInput
+                                                value={row.duration}
+                                                onChange={(value) => updateRow(row.id, "duration", value)}
+                                                min={0}
+                                                step={1}
+                                                hideControls
+                                                placeholder="Czas"
+                                            />
+                                        </td>
+                                        <td>
+                                            <Button color="red" onClick={() => removeRow(row.id)} disabled={rows.length === 1}>
+                                                <IconTrash size={18} />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                </tbody>
+                            </Table>
+                            <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
+                                Dodaj wiersz
+                            </Button>
+                        </Paper>
+                    </Grid.Col>
 
-            <AppShell.Main style={{ backgroundColor: theme.colors.gray[1], borderRadius: 8 }}>
-                <div>Dupa</div>
+                    {/* Prawa strona - Miejsce na wyniki */}
+                    <Grid.Col span={{ base: 12, md: 6 }}>
+                        <Paper p="md" shadow="sm" style={{ backgroundColor: theme.colors.gray[1] }}>
+                            <div>Wyniki będą wyświetlane tutaj</div>
+                        </Paper>
+                    </Grid.Col>
+                </Grid>
             </AppShell.Main>
         </AppShell>
     );
