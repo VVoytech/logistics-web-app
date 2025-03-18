@@ -86,7 +86,7 @@ export const HomePage = () => {
                                 <Image
                                     src="https://templatesfreedownload.com/wp-content/uploads/2020/07/Critical-Path-Method-Example-Project-Data.png"
                                     height={500}
-                                    alt="Norway"
+                                    alt="CPM diagram"
                                 />
                             </Card.Section>
 
@@ -112,7 +112,7 @@ export const HomePage = () => {
                                 <Image
                                     src="https://i.imgflip.com/9nrich.jpg"
                                     height={500}
-                                    alt="Norway"
+                                    alt="CPM diagram"
                                 />
                             </Card.Section>
 
