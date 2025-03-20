@@ -254,9 +254,9 @@ export const CpmPostForm = () => {
                     <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
                         Dodaj wiersz
                     </Button>
-                    {/*<Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
+                    <Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
                         Zapisz i rysuj wykres
-                    </Button>*/}
+                    </Button>
                 </Container>
             </Card>
 
