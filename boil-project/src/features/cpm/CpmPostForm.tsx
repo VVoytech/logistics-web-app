@@ -4,7 +4,7 @@ import {
     Table,
     TextInput,
     NumberInput,
-    Card
+    Card,
 } from "@mantine/core";
 import {useEffect, useState} from "react";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
@@ -92,6 +92,7 @@ export const CpmPostForm = () => {
             row.id === id ? { ...row, [field]: value ?? 0 } : row
         ));
     };
+
 
     const handleSave = () => {
         const newGraphData = processDataForGoJS(rows);
@@ -195,6 +196,7 @@ export const CpmPostForm = () => {
         setGraphData(newGraphData);
     };
 
+
     return (
         <div style={{ display: "flex", gap: "2vw", padding: "2vw" }}>
             <Card
@@ -252,9 +254,9 @@ export const CpmPostForm = () => {
                     <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
                         Dodaj wiersz
                     </Button>
-                    <Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
+                    {/*<Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
                         Zapisz i rysuj wykres
-                    </Button>
+                    </Button>*/}
                 </Container>
             </Card>
 
