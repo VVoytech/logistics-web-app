@@ -4,11 +4,12 @@ import {
     Table,
     TextInput,
     NumberInput,
-    Card,
+    Card,Text
 } from "@mantine/core";
 import {useEffect, useState} from "react";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
 import GraphComponent from "./GraphComponent";
+import GanttChart from "./GanntChart.tsx";
 
 // Definicja typu dla danych wierszy
 interface Row {
@@ -69,7 +70,12 @@ export const CpmPostForm = () => {
         nodes: { key: number; t0: number; t1: number; L: number }[];
         links: { from: number; to: number; label: string; duration: number,color:string }[];
     }>({ nodes: [], links: [] });
+    const [ganttData, setGanttData] = useState<{
+        nodes: { key: number; t0: number; t1: number; L: number }[];
+        links: { from: number; to: number; label: string; duration: number,color:string }[];
+    }>({ nodes: [], links: [] });
     const [rows, setRows] = useState<Row[]>([{ id: 1, predecessor: "", duration: 0 }]);
+    const [criticalPath, setCriticalPath] = useState<string[]>([]);
 
     useEffect(() => {
         const newGraphData = processDataForGoJS(rows);
@@ -160,6 +166,7 @@ export const CpmPostForm = () => {
             }
         }
 
+        setCriticalPath(criticalPath);
 
         newGraphData.links.forEach(link => {
 
@@ -192,90 +199,118 @@ export const CpmPostForm = () => {
                 }
             }
         });
-
+        setGanttData(newGraphData);
+        console.log(newGraphData);
         setGraphData(newGraphData);
     };
 
 
     return (
-        <div style={{ display: "flex", gap: "2vw", padding: "2vw" }}>
-            <Card
-                shadow="md"
-                style={{
-                    width: "25vw",
-                    height: "80vh",
-                    overflowY: "auto",
-                    padding: "20px",
-                    borderRadius: "12px",
-                    backgroundColor: "#f9f9f9",
-                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                }}
-            >
-                <Container>
-                    <Table striped highlightOnHover>
-                        <thead>
-                        <tr>
-                            <th>Czynności</th>
-                            <th>Czynność poprzedzająca</th>
-                            <th>Czas trwania</th>
-                            <th>Usuń</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {rows.map((row, index) => (
-                            <tr key={row.id}>
-                                <td>{alphabet[index]}</td> {/* Czynność A, B, C... */}
-                                <td>
-                                    <TextInput
-                                        value={row.predecessor}
-                                        onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
-                                        placeholder="Poprzednia czynność"
-                                    />
-                                </td>
-                                <td>
-                                    <NumberInput
-                                        value={row.duration}
-                                        onChange={(value) => updateRow(row.id, "duration", value)}
-                                        min={0}
-                                        step={1}
-                                        hideControls
-                                        placeholder="Czas"
-                                    />
-                                </td>
-                                <td>
-                                    <Button color="red" onClick={() => removeRow(row.id)} disabled={rows.length === 1}>
-                                        <IconTrash size={18} />
-                                    </Button>
-                                </td>
+        <div style={{display: "flex", flexDirection: "column", gap: "2vw", padding: "2vw"}}>
+            <div style={{display: "flex", gap: "2vw", width: "100%"}}>
+                <Card
+                    shadow="md"
+                    style={{
+                        width: "25vw",
+                        height: "80vh",
+                        overflowY: "auto",
+                        padding: "20px",
+                        borderRadius: "12px",
+                        backgroundColor: "#f9f9f9",
+                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                    }}
+                >
+                    <Container>
+                        <Table striped highlightOnHover>
+                            <thead>
+                            <tr>
+                                <th>Czynności</th>
+                                <th>Czynność poprzedzająca</th>
+                                <th>Czas trwania</th>
+                                <th>Usuń</th>
                             </tr>
-                        ))}
-                        </tbody>
-                    </Table>
-                    <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
-                        Dodaj wiersz
-                    </Button>
-                    <Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
-                        Zapisz i rysuj wykres
-                    </Button>
-                </Container>
-            </Card>
+                            </thead>
+                            <tbody>
+                            {rows.map((row, index) => (
+                                <tr key={row.id}>
+                                    <td>{alphabet[index]}</td>
+                                    {/* Czynność A, B, C... */}
+                                    <td>
+                                        <TextInput
+                                            value={row.predecessor}
+                                            onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
+                                            placeholder="Poprzednia czynność"
+                                        />
+                                    </td>
+                                    <td>
+                                        <NumberInput
+                                            value={row.duration}
+                                            onChange={(value) => updateRow(row.id, "duration", value)}
+                                            min={0}
+                                            step={1}
+                                            hideControls
+                                            placeholder="Czas"
+                                        />
+                                    </td>
+                                    <td>
+                                        <Button color="red" onClick={() => removeRow(row.id)}
+                                                disabled={rows.length === 1}>
+                                            <IconTrash size={18}/>
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </Table>
+                        <Button onClick={addRow} leftSection={<IconPlus size={18}/>} mt="md">
+                            Dodaj wiersz
+                        </Button>
+                        <Button onClick={handleSave} leftSection={<IconPlus size={18}/>} mt="md">
+                            Zapisz i rysuj wykres
+                        </Button>
+                        {criticalPath.length > 0 && (
+                            <Card shadow="sm" mt="md" p="sm" style={{backgroundColor: "#e9f5ff"}}>
+                                <Text fw={500} size="lg" color="blue">
+                                    Ścieżka krytyczna: {criticalPath.join(" → ")}
+                                </Text>
+                            </Card>
+                        )}
+                    </Container>
+                </Card>
 
-            {/* Sekcja wykresu */}
+
+                <Card
+                    shadow="md"
+                    style={{
+                        width: "65vw",
+                        height: "80vh",
+                        padding: "20px",
+                        borderRadius: "12px",
+                        backgroundColor: "#ffffff",
+                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
+                >
+                    <GraphComponent data={graphData}/>
+                </Card>
+            </div>
+
+
             <Card
                 shadow="md"
                 style={{
-                    width: "65vw",
-                    height: "80vh",
+                    width: "100%",
+                    height: "50vh",
                     padding: "20px",
                     borderRadius: "12px",
                     backgroundColor: "#ffffff",
                     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    marginTop: "2vw",
                 }}
             >
-                <GraphComponent data={graphData} />
+                <GanttChart ganttData={ganttData}/>
             </Card>
         </div>
     );

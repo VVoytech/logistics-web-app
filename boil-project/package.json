@@ -14,10 +14,12 @@
     "@mantine/form": "^7.17.2",
     "@mantine/hooks": "^7.17.2",
     "@tabler/icons-react": "^3.31.0",
+    "gantt-schedule-timeline-calendar": "^3.40.4",
     "gojs": "^3.0.19",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.3.0"
+    "react-router-dom": "^7.3.0",
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
