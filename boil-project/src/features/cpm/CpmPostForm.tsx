@@ -181,23 +181,17 @@ export const CpmPostForm = () => {
             const outgoingLinks = newGraphData.links.filter(link => link.from === node.key);
 
             if (outgoingLinks.length === 0) {
-                // Jeśli nie ma połączeń wychodzących, znajdź najbliższy węzeł (z najmniejszym t0)
-                const nearestNode = newGraphData.nodes
-                    .filter(n => n.key !== node.key && n.t0 > node.t0) // Tylko węzły z większym t0
-                    .sort((a, b) => a.t0 - b.t0)[0]; // Sortuj po t0 i wybierz pierwszy
 
-                if (nearestNode) {
                     // Dodaj nowe połączenie
                     const newLink = {
                         from: node.key,
-                        to: nearestNode.key,
+                        to: node.key+1,
                         label: "p", // Etykieta automatycznego połączenia
                         duration: 0, // Czas trwania to różnica t0
                         color: "gray" // Kolor dla automatycznego połączenia
                     };
                     newGraphData.links.push(newLink);
                 }
-            }
         });
         setGanttData(newGraphData);
         console.log(newGraphData);
