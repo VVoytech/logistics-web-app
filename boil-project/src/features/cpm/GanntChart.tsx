@@ -24,6 +24,9 @@ interface GanttChartProps {
 const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
     const { links } = ganttData;
 
+    // Filtrujemy linki, aby usunąć te z duration = 0
+    const filteredLinks = links.filter((link) => link.duration > 0);
+
     // Obliczanie czasu rozpoczęcia dla każdego zadania
     const calculateStartTimes = (links: Link[]) => {
         const startTimes: { [key: string]: number } = {};
@@ -44,7 +47,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
         return startTimes;
     };
 
-    const startTimes = calculateStartTimes(links);
+    const startTimes = calculateStartTimes(filteredLinks);
 
     // Znajdź minimalny czas rozpoczęcia (pierwszy dzień)
     const minStartTime = Math.min(...Object.values(startTimes));
@@ -62,7 +65,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
 
     // Ustalamy datę początkową (np. dzisiaj)
     const startDate = new Date();
-    const maxTime = Math.max(...links.map((link) => startTimes[link.label] + link.duration));
+    const maxTime = Math.max(...filteredLinks.map((link) => startTimes[link.label] + link.duration));
     const additionalDays = 20; // Dodatkowe dni do wyświetlenia
     const totalDays = maxTime - minStartTime + 1 + additionalDays; // Całkowita liczba dni
     const timeAxis = generateTimeAxis(startDate, totalDays); // Generujemy oś czasu
@@ -71,7 +74,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
     const dayWidth = 100; // 100px na dzień
 
     // Tworzenie węzłów (nodes)
-    const nodes: Node[] = links.map((link, index) => ({
+    const nodes: Node[] = filteredLinks.map((link, index) => ({
         id: `node-${link.label}`,
         data: { label: `${link.label} (${link.duration}d)` },
         position: {
@@ -89,7 +92,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
     }));
 
     // Tworzenie krawędzi (edges)
-    const edges: Edge[] = links.map((link) => ({
+    const edges: Edge[] = filteredLinks.map((link) => ({
         id: `edge-${link.label}`,
         source: `node-${link.label}`,
         target: `node-${link.label}`,

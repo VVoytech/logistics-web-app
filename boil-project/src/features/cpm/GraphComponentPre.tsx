@@ -47,7 +47,7 @@ const GraphComponentPre = ({ data }: GraphComponentProps) => {
                         { routing: go.Link.AvoidsNodes, corner: 10 },
                         $(go.Shape, { strokeWidth: 2 }, new go.Binding("stroke", "color")),
                         $(go.Shape, { toArrow: "OpenTriangle" }, new go.Binding("stroke", "color"), new go.Binding("fill", "color")),
-                        $(go.TextBlock, { segmentOffset: new go.Point(0, -15), font: "10pt sans-serif" }, new go.Binding("text", "label")),
+                       // $(go.TextBlock, { segmentOffset: new go.Point(0, -15), font: "10pt sans-serif" }, new go.Binding("text", "label")),
                         $(go.TextBlock, { segmentOffset: new go.Point(0, 15), font: "10pt sans-serif" }, new go.Binding("text", "duration"))
                     );
 
