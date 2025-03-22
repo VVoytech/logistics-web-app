@@ -201,6 +201,7 @@ export const CpmPreForm = () => {
 
         // Krok 5: Znajdź ścieżkę krytyczną
         const criticalPath: string[] = []; // Tablica na etykiety połączeń ścieżki krytycznej
+        criticalPath.push("START");
         let currentNode = newGraphData.nodes[0]; // Zaczynamy od pierwszego węzła
 
         while (currentNode) {
@@ -214,15 +215,19 @@ export const CpmPreForm = () => {
             });
 
             if (nextLink) {
-                criticalPath.push(nextLink.label); // Dodaj etykietę połączenia do ścieżki krytycznej
-                currentNode = newGraphData.nodes.find(node => node.key === nextLink.to)!; // Przejdź do następnego węzła
+                const toNode = newGraphData.nodes.find(node => node.key === nextLink.to);
+                if (toNode) { // Check if toNode is defined
+                    criticalPath.push(toNode.label); // Add the label of the target node to the critical path
+                    currentNode = toNode; // Move to the next node
+                } else {
+                    break; // Stop if the target node is not found
+                }
             } else {
                 break; // Zakończ, jeśli nie ma więcej węzłów na ścieżce krytycznej
             }
         }
 
         setCriticalPath(criticalPath);
-
         // Krok 6: Resetowanie kolorów wszystkich połączeń do domyślnego (czarnego)
         newGraphData.links.forEach(link => {
             link.color = "black"; // Resetuj kolor do domyślnego
@@ -230,8 +235,15 @@ export const CpmPreForm = () => {
 
         // Krok 7: Oznaczanie tylko połączeń na ścieżce krytycznej na czerwono
         newGraphData.links.forEach(link => {
-            if (criticalPath.includes(link.label)) {
-                link.color = "red"; // Oznacz tylko połączenia na ścieżce krytycznej
+            // Przejdź przez tablicę criticalPath i sprawdź, czy link.from i link.to są kolejnymi elementami
+            for (let i = 0; i < criticalPath.length - 1; i++) {
+                const fromNode = criticalPath[i]; // Aktualny węzeł
+                const toNode = criticalPath[i + 1]; // Następny węzeł
+
+                // Sprawdź, czy link.from i link.to pasują do kolejnych węzłów w criticalPath
+                if (link.label===`${fromNode}-${toNode}`) {
+                    link.color = "red"; // Oznacz połączenie jako część ścieżki krytycznej
+                }
             }
         });
 
@@ -259,7 +271,6 @@ export const CpmPreForm = () => {
         };
 
         setGanttData(ganttData);
-        console.log(newGraphData);
         setGraphData(newGraphData);
     };
 
