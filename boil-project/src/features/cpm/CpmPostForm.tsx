@@ -4,7 +4,7 @@ import {
     Table,
     TextInput,
     NumberInput,
-    Card,Text
+    Card, Text, Select
 } from "@mantine/core";
 import {useEffect, useState} from "react";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
@@ -76,6 +76,7 @@ export const CpmPostForm = () => {
     }>({ nodes: [], links: [] });
     const [rows, setRows] = useState<Row[]>([{ id: 1, predecessor: "", duration: 0 }]);
     const [criticalPath, setCriticalPath] = useState<string[]>([]);
+    const [timeUnit, setTimeUnit] = useState<"minuty" | "godziny" | "dni">("dni");
 
     useEffect(() => {
         const newGraphData = processDataForGoJS(rows);
@@ -215,6 +216,19 @@ export const CpmPostForm = () => {
                     }}
                 >
                     <Container>
+                        {/* Dodajemy selektor do wyboru jednostki czasu */}
+                        <Select
+                            label="Jednostka czasu"
+                            value={timeUnit}
+                            onChange={(value) => setTimeUnit(value as "minuty" | "godziny" | "dni")}
+                            data={[
+                                { value: "minuty", label: "Minuty" },
+                                { value: "godziny", label: "Godziny" },
+                                { value: "dni", label: "Dni" },
+                            ]}
+                            mb="md"
+                        />
+
                         <Table striped highlightOnHover>
                             <thead>
                             <tr>
@@ -304,7 +318,7 @@ export const CpmPostForm = () => {
                     marginTop: "2vw",
                 }}
             >
-                <GanttChart ganttData={ganttData}/>
+                <GanttChart ganttData={ganttData} timeUnit={timeUnit}/>
             </Card>
         </div>
     );
