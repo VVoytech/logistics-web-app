@@ -5,7 +5,7 @@ import {
     TextInput,
     NumberInput,
     Card,
-    Text
+    Text, Select
 } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { IconPlus, IconTrash } from "@tabler/icons-react";
@@ -135,6 +135,7 @@ export const CpmPreForm = () => {
     const [ganttData, setGanttData] = useState<GanttData>({ links: [] });
     const [rows, setRows] = useState<Row[]>([{ id: 1, predecessor: "", duration: 0 }]);
     const [criticalPath, setCriticalPath] = useState<string[]>([]);
+    const [timeUnit, setTimeUnit] = useState<"minuty" | "godziny" | "dni">("dni");
 
     useEffect(() => {
         const newGraphData = processDataForGoJS(rows);
@@ -290,6 +291,19 @@ export const CpmPreForm = () => {
                     }}
                 >
                     <Container>
+                        {/* Dodajemy selektor do wyboru jednostki czasu */}
+                        <Select
+                            label="Jednostka czasu"
+                            value={timeUnit}
+                            onChange={(value) => setTimeUnit(value as "minuty" | "godziny" | "dni")}
+                            data={[
+                                { value: "minuty", label: "Minuty" },
+                                { value: "godziny", label: "Godziny" },
+                                { value: "dni", label: "Dni" },
+                            ]}
+                            mb="md"
+                        />
+
                         <Table striped highlightOnHover>
                             <thead>
                             <tr>
@@ -302,7 +316,7 @@ export const CpmPreForm = () => {
                             <tbody>
                             {rows.map((row, index) => (
                                 <tr key={row.id}>
-                                    <td>{alphabet[index]}</td> {/* Czynność A, B, C... */}
+                                    <td>{alphabet[index]}</td>
                                     <td>
                                         <TextInput
                                             value={row.predecessor}
@@ -375,7 +389,7 @@ export const CpmPreForm = () => {
                     marginTop: "2vw",
                 }}
             >
-                <GanttChart ganttData={ganttData} />
+                <GanttChart ganttData={ganttData} timeUnit={timeUnit} />
             </Card>
         </div>
     );

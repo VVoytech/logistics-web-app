@@ -2,7 +2,6 @@ import React from 'react';
 import ReactFlow, { Controls, Node, Edge } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-// Definiowanie typu dla linku
 interface Link {
     from: number;
     to: number;
@@ -11,33 +10,28 @@ interface Link {
     color: string;
 }
 
-// Definiowanie typu dla ganttData
 interface GanttData {
     links: Link[];
 }
 
-// Definiowanie typu dla propsów komponentu GanttChart
 interface GanttChartProps {
     ganttData: GanttData;
+    timeUnit: "minuty" | "godziny" | "dni";
 }
 
-const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
+const GanttChart: React.FC<GanttChartProps> = ({ ganttData, timeUnit }) => {
     const { links } = ganttData;
 
-    // Filtrujemy linki, aby usunąć te z duration = 0
     const filteredLinks = links.filter((link) => link.duration > 0);
 
-    // Obliczanie czasu rozpoczęcia dla każdego zadania
     const calculateStartTimes = (links: Link[]) => {
         const startTimes: { [key: string]: number } = {};
 
         links.forEach((link) => {
             if (!startTimes[link.label]) {
-                // Jeśli zadanie nie ma jeszcze czasu rozpoczęcia, ustawiamy je na podstawie `from`
                 startTimes[link.label] = link.from;
             }
 
-            // Jeśli zadanie ma zależność (np. B musi zacząć się po A), aktualizujemy jego czas rozpoczęcia
             const dependency = links.find((l) => l.to === link.from);
             if (dependency) {
                 startTimes[link.label] = Math.max(startTimes[link.label], startTimes[dependency.label] + dependency.duration);
@@ -49,37 +43,69 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
 
     const startTimes = calculateStartTimes(filteredLinks);
 
-    // Znajdź minimalny czas rozpoczęcia (pierwszy dzień)
     const minStartTime = Math.min(...Object.values(startTimes));
 
-    // Funkcja do generowania osi czasu z datami (w formacie "dd.mm.rrrr")
-    const generateTimeAxis = (startDate: Date, numberOfDays: number) => {
+    // Funkcja generująca oś czasu z odpowiednim formatem etykiet
+    const generateTimeAxis = (startDate: Date, numberOfUnits: number, timeUnit: "minuty" | "godziny" | "dni") => {
         const timeAxis = [];
-        for (let i = 0; i < numberOfDays; i++) {
-            const currentDate = new Date(startDate);
-            currentDate.setDate(startDate.getDate() + i); // Dodajemy dni
-            timeAxis.push(currentDate.toLocaleDateString('pl-PL')); // Format: "dd.mm.rrrr"
+        let step = 1;
+
+        // Dostosowanie kroku w zależności od jednostki czasu
+        if (timeUnit === "minuty") {
+            step = 15; // Wyświetlaj co godzinę (60 minut)
+        } else if (timeUnit === "godziny") {
+            step = 6; // Wyświetlaj co 6 godzin
+        } else if (timeUnit === "dni") {
+            step = 1; // Wyświetlaj codziennie
         }
-        return timeAxis;
+
+        for (let i = 0; i < numberOfUnits; i += step) {
+            const currentDate = new Date(startDate);
+
+            if (timeUnit === "minuty") {
+                currentDate.setMinutes(startDate.getMinutes() + i);
+            } else if (timeUnit === "godziny") {
+                currentDate.setHours(startDate.getHours() + i);
+            } else if (timeUnit === "dni") {
+                currentDate.setDate(startDate.getDate() + i);
+            }
+
+            // Formatowanie etykiety w zależności od jednostki czasu
+            let label = "";
+            if (timeUnit === "minuty") {
+                label = currentDate.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }); // Format: "12:30"
+            } else if (timeUnit === "godziny") {
+                label = currentDate.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }); // Format: "12:00"
+            } else if (timeUnit === "dni") {
+                label = currentDate.toLocaleDateString('pl-PL'); // Format: "01.01.2023"
+            }
+
+            timeAxis.push({
+                time: i,
+                label: label,
+            });
+        }
+
+        return { timeAxis, step }; // Zwracamy zarówno oś czasu, jak i krok
     };
 
-    // Ustalamy datę początkową (np. dzisiaj)
     const startDate = new Date();
     const maxTime = Math.max(...filteredLinks.map((link) => startTimes[link.label] + link.duration));
-    const additionalDays = 20; // Dodatkowe dni do wyświetlenia
-    const totalDays = maxTime - minStartTime + 1 + additionalDays; // Całkowita liczba dni
-    const timeAxis = generateTimeAxis(startDate, totalDays); // Generujemy oś czasu
+    const additionalUnits = 20; // Dodatkowe jednostki czasu do wyświetlenia
+    const totalUnits = maxTime - minStartTime + 1 + additionalUnits;
 
-    // Szerokość jednego dnia w pikselach
-    const dayWidth = 100; // 100px na dzień
+    // Generowanie osi czasu z odpowiednim formatem etykiet
+    const { timeAxis, step } = generateTimeAxis(startDate, totalUnits, timeUnit);
 
-    // Tworzenie węzłów (nodes)
+    // Dostosowanie szerokości jednostki czasu w zależności od wybranej jednostki
+    const unitWidth = timeUnit === "minuty" ? 20 : timeUnit === "godziny" ? 50 : 100; // Zwiększona szerokość dla minut i godzin
+
     const nodes: Node[] = filteredLinks.map((link, index) => ({
         id: `node-${link.label}`,
-        data: { label: `${link.label} (${link.duration}d)` },
+        data: { label: `${link.label} (${link.duration}${timeUnit === "minuty" ? "m" : timeUnit === "godziny" ? "h" : "d"})` },
         position: {
-            x: (startTimes[link.label] - minStartTime) * dayWidth, // Przesunięcie względem początku osi czasu
-            y: index * 40, // Odstęp na osi Y
+            x: (startTimes[link.label] - minStartTime) * unitWidth,
+            y: index * 40,
         },
         style: {
             backgroundColor: link.color,
@@ -87,11 +113,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
             padding: 8,
             border: '2px solid black',
             borderRadius: '5px',
-            width: `${link.duration * dayWidth}px`, // Szerokość węzła proporcjonalna do liczby dni
+            width: `${link.duration * unitWidth}px`,
         },
     }));
 
-    // Tworzenie krawędzi (edges)
     const edges: Edge[] = filteredLinks.map((link) => ({
         id: `edge-${link.label}`,
         source: `node-${link.label}`,
@@ -102,7 +127,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
 
     return (
         <div style={{ height: '600px', width: '100%', position: 'relative', overflowX: 'auto' }}>
-            {/* Oś czasu z datami */}
+            {/* Oś czasu z etykietami */}
             <div
                 style={{
                     display: 'flex',
@@ -110,26 +135,26 @@ const GanttChart: React.FC<GanttChartProps> = ({ ganttData }) => {
                     padding: '10px 0',
                     borderBottom: '2px solid #ccc',
                     marginBottom: '20px',
-                    width: `${totalDays * dayWidth}px`, // Szerokość osi czasu odpowiada całkowitej liczbie dni
-                    marginLeft: `-${minStartTime * dayWidth}px`, // Przesunięcie osi czasu w lewo
+                    width: `${totalUnits * unitWidth}px`,
+                    marginLeft: `-${minStartTime * unitWidth}px`,
                 }}
             >
-                {timeAxis.map((date, index) => (
+                {timeAxis.map((item, index) => (
                     <div
                         key={index}
                         style={{
                             fontWeight: 'bold',
-                            width: `${dayWidth}px`, // Szerokość jednego dnia
+                            width: `${step * unitWidth}px`, // Szerokość odpowiadająca krokowi
                             textAlign: 'center',
-                            flexShrink: 0, // Zapobiega zmniejszaniu szerokości
+                            flexShrink: 0,
                         }}
                     >
-                        {date}
+                        {item.label}
                     </div>
                 ))}
             </div>
 
-            <div style={{ width: `${totalDays * dayWidth}px`, height: '500px', overflow: 'auto' }}>
+            <div style={{ width: `${totalUnits * unitWidth}px`, height: '500px', overflow: 'auto' }}>
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
