@@ -109,11 +109,11 @@ export const CpmPostForm = () => {
             node.t1 = Infinity; // Ustawiamy t1 na nieskończoność, aby później znaleźć minimum
         });
 
-        // Krok 2: Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
+// Krok 2: Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
         const lastNode = newGraphData.nodes[newGraphData.nodes.length - 1];
         lastNode.t1 = lastNode.t0; // t1 ostatniego węzła jest równe jego t0
 
-        // Krok 3: Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
+// Krok 3: Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
         for (let i = newGraphData.nodes.length - 1; i >= 0; i--) {
             const currentNode = newGraphData.nodes[i];
 
@@ -134,15 +134,35 @@ export const CpmPostForm = () => {
                     }
                 }
             });
+
+            // Dodatkowo, przejdź przez wszystkie węzły wychodzące z currentNode
+            const outgoingLinks = newGraphData.links.filter(link => link.from === currentNode.key);
+
+            outgoingLinks.forEach(link => {
+                const toNode = newGraphData.nodes.find(node => node.key === link.to);
+
+                if (toNode) {
+                    // Oblicz t1 dla currentNode jako t1 węzła wychodzącego minus duration
+                    const t1Candidate = toNode.t1 - link.duration;
+
+                    // Jeśli obliczona wartość jest mniejsza niż aktualne t1 currentNode, zaktualizuj t1
+                    if (t1Candidate < currentNode.t1) {
+                        currentNode.t1 = t1Candidate;
+                    }
+                }
+            });
         }
+
+// Krok 4: Ustawienie t1 na t0, jeśli t1 nie zostało zaktualizowane
         newGraphData.nodes.forEach(node => {
             if (node.t1 === Infinity) {
                 node.t1 = node.t0; // Jeśli t1 nie zostało zaktualizowane, ustaw je na t0
             }
         });
 
+// Krok 5: Obliczenie L (luzy) dla każdego węzła
         newGraphData.nodes.forEach(node => {
-            node.L=node.t1-node.t0;
+            node.L = node.t1 - node.t0;
         });
 
         // Krok 5: Znajdź ścieżkę krytyczną
@@ -233,7 +253,7 @@ export const CpmPostForm = () => {
                             <thead>
                             <tr>
                                 <th>Czynności</th>
-                                <th>Czynność poprzedzająca</th>
+                                <th>Następstwo zdarzeń</th>
                                 <th>Czas trwania</th>
                                 <th>Usuń</th>
                             </tr>
