@@ -314,24 +314,25 @@ export const CpmPreForm = () => {
                     }}
                 >
 
-                    <FileInput
-                        label="Wczytaj dane z Excela"
-                        placeholder="Wybierz plik XLS/XLSX"
-                        accept=".xls,.xlsx"
-                        onChange={handleFileUpload}
-                        leftSection={<IconUpload size={18} />}
-                        mb="md"
-                    />
+
 
                     <Container>
+                        <FileInput
+                            label="Wczytaj dane z Excela"
+                            placeholder="Wybierz plik XLS/XLSX"
+                            accept=".xls,.xlsx"
+                            onChange={handleFileUpload}
+                            leftSection={<IconUpload size={18} />}
+                            mb="md"
+                        />
                         <Select
                             label="Jednostka czasu"
                             value={timeUnit}
                             onChange={(value) => setTimeUnit(value as "minuty" | "godziny" | "dni")}
                             data={[
-                                { value: "minuty", label: "Minuty" },
-                                { value: "godziny", label: "Godziny" },
-                                { value: "dni", label: "Dni" },
+                                {value: "minuty", label: "Minuty"},
+                                {value: "godziny", label: "Godziny"},
+                                {value: "dni", label: "Dni"},
                             ]}
                             mb="md"
                         />
@@ -367,8 +368,9 @@ export const CpmPreForm = () => {
                                         />
                                     </td>
                                     <td>
-                                        <Button color="red" onClick={() => removeRow(row.id)} disabled={rows.length === 1}>
-                                            <IconTrash size={18} />
+                                        <Button color="red" onClick={() => removeRow(row.id)}
+                                                disabled={rows.length === 1}>
+                                            <IconTrash size={18}/>
                                         </Button>
                                     </td>
                                 </tr>
@@ -384,22 +386,53 @@ export const CpmPreForm = () => {
                             direction="row"
                             wrap="wrap"
                         >
-                            <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
+                            <Button onClick={addRow} leftSection={<IconPlus size={18}/>} mt="md">
                                 Dodaj wiersz
                             </Button>
-                            <Button onClick={handleSave} leftSection={<IconDeviceFloppy size={18} />} mt="md">
+                            <Button onClick={handleSave} leftSection={<IconDeviceFloppy size={18}/>} mt="md">
                                 Zapisz i rysuj wykres
                             </Button>
                         </Flex>
 
                         {criticalPath.length > 0 && (
-                            <Card shadow="sm" mt="md" p="sm" style={{ backgroundColor: "#e9f5ff" }}>
+                            <Card shadow="sm" mt="md" p="sm" style={{backgroundColor: "#e9f5ff"}}>
                                 <Text fw={500} size="lg" color="blue">
                                     Ścieżka krytyczna: {criticalPath.join(" → ")}
                                 </Text>
                             </Card>
                         )}
                     </Container>
+                    <div style={{
+                        marginTop: "20px",
+                        textAlign: "center",
+                        border: "1px dashed #ccc",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        backgroundColor: "#fff"
+                    }}>
+                        <img
+                            src="/legenda.png"
+                            alt="Legenda wykresu"
+                            style={{
+                                maxWidth: "100%",
+                                height: "auto",
+                                borderRadius: "4px",
+                                marginBottom: "10px"
+                            }}
+                        />
+                        <div style={{
+                            padding: "8px",
+                            fontSize: "14px",
+                            lineHeight: "1.5",
+                            color: "#333",
+                            textAlign: "left"
+                        }}>
+                            <p><strong>j</strong> - Czynność</p>
+                            <p><strong>t0</strong> - najwcześniejszy możliwy moment zaistnienia zdarzenia </p>
+                            <p><strong>t1</strong> - najpóźniejszy możliwy moment zaistnienia zdarzenia</p>
+                            <p><strong>L</strong> - zapas (luz) czasu</p>
+                        </div>
+                    </div>
                 </Card>
 
                 <Card
@@ -416,7 +449,7 @@ export const CpmPreForm = () => {
                         justifyContent: "center",
                     }}
                 >
-                    <GraphComponentPre data={graphData} />
+                    <GraphComponentPre data={graphData}/>
                 </Card>
             </div>
 
@@ -432,7 +465,7 @@ export const CpmPreForm = () => {
                     marginTop: "2vw",
                 }}
             >
-                <GanttChart ganttData={ganttData} timeUnit={timeUnit} />
+                <GanttChart ganttData={ganttData} timeUnit={timeUnit}/>
             </Card>
         </div>
     );

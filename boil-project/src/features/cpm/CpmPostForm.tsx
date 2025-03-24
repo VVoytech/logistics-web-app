@@ -259,20 +259,8 @@ export const CpmPostForm = () => {
                         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
                     }}
                 >
-                    <Container>
-                        {/* Dodajemy selektor do wyboru jednostki czasu */}
-                        <Select
-                            label="Jednostka czasu"
-                            value={timeUnit}
-                            onChange={(value) => setTimeUnit(value as "minuty" | "godziny" | "dni")}
-                            data={[
-                                { value: "minuty", label: "Minuty" },
-                                { value: "godziny", label: "Godziny" },
-                                { value: "dni", label: "Dni" },
-                            ]}
-                            mb="md"
-                        />
 
+                    <Container>
                         <FileInput
                             label="Wczytaj dane z Excela"
                             placeholder="Wybierz plik XLS/XLSX"
@@ -281,6 +269,20 @@ export const CpmPostForm = () => {
                             leftSection={<IconUpload size={18} />}
                             mb="md"
                         />
+                        {/* Dodajemy selektor do wyboru jednostki czasu */}
+                        <Select
+                            label="Jednostka czasu"
+                            value={timeUnit}
+                            onChange={(value) => setTimeUnit(value as "minuty" | "godziny" | "dni")}
+                            data={[
+                                {value: "minuty", label: "Minuty"},
+                                {value: "godziny", label: "Godziny"},
+                                {value: "dni", label: "Dni"},
+                            ]}
+                            mb="md"
+                        />
+
+
 
                         <Table striped highlightOnHover>
                             <thead>
@@ -345,6 +347,37 @@ export const CpmPostForm = () => {
                             </Card>
                         )}
                     </Container>
+                    <div style={{
+                        marginTop: "20px",
+                        textAlign: "center",
+                        border: "1px dashed #ccc",
+                        borderRadius: "8px",
+                        padding: "10px",
+                        backgroundColor: "#fff"
+                    }}>
+                        <img
+                            src="/legenda.png"
+                            alt="Legenda wykresu"
+                            style={{
+                                maxWidth: "100%",
+                                height: "auto",
+                                borderRadius: "4px",
+                                marginBottom: "10px"
+                            }}
+                        />
+                        <div style={{
+                            padding: "8px",
+                            fontSize: "14px",
+                            lineHeight: "1.5",
+                            color: "#333",
+                            textAlign: "left"
+                        }}>
+                            <p><strong>j</strong> - Nr. zdarzenia</p>
+                            <p><strong>t0</strong> - najwcześniejszy możliwy moment zaistnienia zdarzenia </p>
+                            <p><strong>t1</strong> - najpóźniejszy możliwy moment zaistnienia zdarzenia</p>
+                            <p><strong>L</strong> - zapas (luz) czasu</p>
+                        </div>
+                    </div>
                 </Card>
 
 
