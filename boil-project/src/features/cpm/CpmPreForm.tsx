@@ -15,7 +15,7 @@ import GanttChart from "./GanntChart.tsx";
 // Definicja typu dla danych wierszy
 interface Row {
     id: number;
-    predecessor: string; // Poprzedzająca czynność (np. "A,B")
+    predecessor: string; // Poprzedzająca czynność
     duration: number;
 }
 
@@ -30,7 +30,7 @@ interface GanttData {
     links: { from: number; to: number; label: string; duration: number; color: string }[];
 }
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności (A, B, C, ...)
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności
 
 const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) => {
     const nodes: { key: number; t0: number; t1: number; L: number; label: string }[] = [
@@ -44,12 +44,12 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
     t0Map.set(1, 0);
 
     rows.forEach((row, index) => {
-        const activity = index + 2; // Przypisujemy numer do czynności (2, 3, 4, ...)
+        const activity = index + 2; // Przypisujemy numer do czynności
         const predecessors = row.predecessor.split(',').map(p => p.trim()); // Dzielimy poprzedników
 
         // Dodajemy węzeł dla aktualnej czynności, jeśli jeszcze nie istnieje
         if (!usedKeys.has(activity)) {
-            nodes.push({ key: activity, t0: 0, t1: 0, L: 0, label: alphabet[index] }); // Etykieta to A, B, C, ...
+            nodes.push({ key: activity, t0: 0, t1: 0, L: 0, label: alphabet[index] });
             usedKeys.add(activity);
             t0Map.set(activity, 0);
         }
@@ -60,7 +60,7 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
             links.push({
                 from: 1, // Węzeł startowy
                 to: activity,
-                label: `START-${alphabet[index]}`, // Etykieta w formacie START-A, START-B, itd.
+                label: `START-${alphabet[index]}`,
                 duration: row.duration,
                 color: 'black'
             });
@@ -83,7 +83,7 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
                 links.push({
                     from: predecessorKey,
                     to: activity,
-                    label: `${predecessor}-${alphabet[index]}`, // Etykieta w formacie A-B, A-C, itd.
+                    label: `${predecessor}-${alphabet[index]}`,
                     duration: row.duration,
                     color: 'black'
                 });
@@ -163,16 +163,16 @@ export const CpmPreForm = () => {
     const handleSave = () => {
         const newGraphData = processDataForGoJS(rows);
 
-        // Krok 1: Inicjalizacja t1 dla wszystkich węzłów
+        // Inicjalizacja t1 dla wszystkich węzłów
         newGraphData.nodes.forEach(node => {
             node.t1 = Infinity; // Ustawiamy t1 na nieskończoność, aby później znaleźć minimum
         });
 
-        // Krok 2: Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
+        // Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
         const lastNode = newGraphData.nodes[newGraphData.nodes.length - 1];
         lastNode.t1 = lastNode.t0; // t1 ostatniego węzła jest równe jego t0
 
-        // Krok 3: Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
+        // Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
         for (let i = newGraphData.nodes.length - 1; i >= 0; i--) {
             const currentNode = newGraphData.nodes[i];
 
@@ -195,12 +195,12 @@ export const CpmPreForm = () => {
             });
         }
 
-        // Krok 4: Obliczenie L (luzy) dla każdego węzła
+        // Obliczenie L (luzy) dla każdego węzła
         newGraphData.nodes.forEach(node => {
             node.L = node.t1 - node.t0;
         });
 
-        // Krok 5: Znajdź ścieżkę krytyczną
+        // Znajdź ścieżkę krytyczną
         const criticalPath: string[] = []; // Tablica na etykiety połączeń ścieżki krytycznej
         criticalPath.push("START");
         let currentNode = newGraphData.nodes[0]; // Zaczynamy od pierwszego węzła
@@ -217,24 +217,24 @@ export const CpmPreForm = () => {
 
             if (nextLink) {
                 const toNode = newGraphData.nodes.find(node => node.key === nextLink.to);
-                if (toNode) { // Check if toNode is defined
-                    criticalPath.push(toNode.label); // Add the label of the target node to the critical path
-                    currentNode = toNode; // Move to the next node
+                if (toNode) {
+                    criticalPath.push(toNode.label);
+                    currentNode = toNode;
                 } else {
-                    break; // Stop if the target node is not found
+                    break;
                 }
             } else {
-                break; // Zakończ, jeśli nie ma więcej węzłów na ścieżce krytycznej
+                break;
             }
         }
 
         setCriticalPath(criticalPath);
-        // Krok 6: Resetowanie kolorów wszystkich połączeń do domyślnego (czarnego)
+        // Resetowanie kolorów wszystkich połączeń do domyślnego (czarnego)
         newGraphData.links.forEach(link => {
             link.color = "black"; // Resetuj kolor do domyślnego
         });
 
-        // Krok 7: Oznaczanie tylko połączeń na ścieżce krytycznej na czerwono
+        // Oznaczanie tylko połączeń na ścieżce krytycznej na czerwono
         newGraphData.links.forEach(link => {
             // Przejdź przez tablicę criticalPath i sprawdź, czy link.from i link.to są kolejnymi elementami
             for (let i = 0; i < criticalPath.length - 1; i++) {
@@ -248,7 +248,7 @@ export const CpmPreForm = () => {
             }
         });
 
-        // Krok 8: Dodanie automatycznych połączeń dla węzłów bez wychodzących połączeń
+        // Dodanie automatycznych połączeń dla węzłów bez wychodzących połączeń
         newGraphData.nodes.slice(0, -1).forEach(node => { // Pomijamy ostatni węzeł
             const outgoingLinks = newGraphData.links.filter(link => link.from === node.key);
 
@@ -256,16 +256,16 @@ export const CpmPreForm = () => {
                 // Dodaj nowe połączenie
                 const newLink = {
                     from: node.key,
-                    to: newGraphData.nodes[newGraphData.nodes.length - 1].key, // Węzeł KONIEC
-                    label: '', // Etykieta automatycznego połączenia
-                    duration: 0, // Czas trwania to różnica t0
+                    to: newGraphData.nodes[newGraphData.nodes.length - 1].key,
+                    label: '',
+                    duration: 0,
                     color: "gray" // Kolor dla automatycznego połączenia
                 };
                 newGraphData.links.push(newLink);
             }
         });
 
-        // Krok 9: Przygotowanie danych dla GanttChart
+        // Przygotowanie danych dla GanttChart
         const ganttData = {
             nodes: newGraphData.nodes,
             links: newGraphData.links
@@ -291,7 +291,6 @@ export const CpmPreForm = () => {
                     }}
                 >
                     <Container>
-                        {/* Dodajemy selektor do wyboru jednostki czasu */}
                         <Select
                             label="Jednostka czasu"
                             value={timeUnit}

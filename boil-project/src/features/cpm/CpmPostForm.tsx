@@ -18,7 +18,7 @@ interface Row {
     duration: number;
 }
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności (A, B, C, ...)
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności
 
 const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) => {
     const nodes: { key: number; t0: number; t1: number; L: number }[] = [{ key: 1, t0: 0, t1: 0, L: 0 }];
@@ -104,16 +104,16 @@ export const CpmPostForm = () => {
     const handleSave = () => {
         const newGraphData = processDataForGoJS(rows);
 
-        // Krok 1: Inicjalizacja t1 dla wszystkich węzłów
+        // Inicjalizacja t1 dla wszystkich węzłów
         newGraphData.nodes.forEach(node => {
             node.t1 = Infinity; // Ustawiamy t1 na nieskończoność, aby później znaleźć minimum
         });
 
-// Krok 2: Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
+// Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
         const lastNode = newGraphData.nodes[newGraphData.nodes.length - 1];
         lastNode.t1 = lastNode.t0; // t1 ostatniego węzła jest równe jego t0
 
-// Krok 3: Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
+// Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
         for (let i = newGraphData.nodes.length - 1; i >= 0; i--) {
             const currentNode = newGraphData.nodes[i];
 
@@ -153,19 +153,19 @@ export const CpmPostForm = () => {
             });
         }
 
-// Krok 4: Ustawienie t1 na t0, jeśli t1 nie zostało zaktualizowane
+// Ustawienie t1 na t0, jeśli t1 nie zostało zaktualizowane
         newGraphData.nodes.forEach(node => {
             if (node.t1 === Infinity) {
                 node.t1 = node.t0; // Jeśli t1 nie zostało zaktualizowane, ustaw je na t0
             }
         });
 
-// Krok 5: Obliczenie L (luzy) dla każdego węzła
+// Obliczenie L (luzy) dla każdego węzła
         newGraphData.nodes.forEach(node => {
             node.L = node.t1 - node.t0;
         });
 
-        // Krok 5: Znajdź ścieżkę krytyczną
+        // Znajdź ścieżkę krytyczną
         const criticalPath: string[] = []; // Tablica na etykiety połączeń ścieżki krytycznej
         let currentNode = newGraphData.nodes[0]; // Zaczynamy od pierwszego węzła
 
@@ -198,7 +198,7 @@ export const CpmPostForm = () => {
             }
         });
 
-        newGraphData.nodes.slice(0, -1).forEach(node => { // Pomijamy ostatni węzeł
+        newGraphData.nodes.slice(0, -1).forEach(node => {
             const outgoingLinks = newGraphData.links.filter(link => link.from === node.key);
 
             if (outgoingLinks.length === 0) {
@@ -207,9 +207,9 @@ export const CpmPostForm = () => {
                     const newLink = {
                         from: node.key,
                         to: node.key+1,
-                        label: "p", // Etykieta automatycznego połączenia
-                        duration: 0, // Czas trwania to różnica t0
-                        color: "gray" // Kolor dla automatycznego połączenia
+                        label: "p",
+                        duration: 0,
+                        color: "gray"
                     };
                     newGraphData.links.push(newLink);
                 }
@@ -262,7 +262,6 @@ export const CpmPostForm = () => {
                             {rows.map((row, index) => (
                                 <tr key={row.id}>
                                     <td>{alphabet[index]}</td>
-                                    {/* Czynność A, B, C... */}
                                     <td>
                                         <TextInput
                                             value={row.predecessor}
