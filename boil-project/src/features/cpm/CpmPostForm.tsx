@@ -4,12 +4,13 @@ import {
     Table,
     TextInput,
     NumberInput,
-    Card, Text, Select, Flex
+    Card, Text, Select, Flex, FileInput
 } from "@mantine/core";
 import {useEffect, useState} from "react";
-import {IconDeviceFloppy, IconPlus, IconTrash} from "@tabler/icons-react";
+import {IconDeviceFloppy, IconPlus, IconTrash, IconUpload} from "@tabler/icons-react";
 import GraphComponent from "./GraphComponent";
 import GanttChart from "./GanntChart.tsx";
+import * as XLSX from 'xlsx';
 
 // Definicja typu dla danych wierszy
 interface Row {
@@ -99,6 +100,29 @@ export const CpmPostForm = () => {
             row.id === id ? { ...row, [field]: value ?? 0 } : row
         ));
     };
+
+    const handleFileUpload = (file: File | null) => {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json<{ predecessor?: string; duration?: number }>(worksheet);
+
+            const newRows = jsonData.map((row, index) => ({
+                id: index + 1,
+                predecessor: row.predecessor || "",
+                duration: row.duration || 0
+            }));
+
+            setRows(newRows);
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
 
 
     const handleSave = () => {
@@ -246,6 +270,15 @@ export const CpmPostForm = () => {
                                 { value: "godziny", label: "Godziny" },
                                 { value: "dni", label: "Dni" },
                             ]}
+                            mb="md"
+                        />
+
+                        <FileInput
+                            label="Wczytaj dane z Excela"
+                            placeholder="Wybierz plik XLS/XLSX"
+                            accept=".xls,.xlsx"
+                            onChange={handleFileUpload}
+                            leftSection={<IconUpload size={18} />}
                             mb="md"
                         />
 
