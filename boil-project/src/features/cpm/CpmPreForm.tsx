@@ -5,12 +5,13 @@ import {
     TextInput,
     NumberInput,
     Card,
-    Text, Select, Flex
+    Text, Select, Flex, FileInput
 } from "@mantine/core";
 import { useEffect, useState } from "react";
-import {IconDeviceFloppy, IconPlus, IconTrash} from "@tabler/icons-react";
+import {IconDeviceFloppy, IconPlus, IconTrash, IconUpload} from "@tabler/icons-react";
 import GraphComponentPre from "./GraphComponentPre";
 import GanttChart from "./GanntChart.tsx";
+import * as XLSX from "xlsx";
 
 // Definicja typu dla danych wierszy
 interface Row {
@@ -159,6 +160,28 @@ export const CpmPreForm = () => {
         ));
     };
 
+    const handleFileUpload = (file: File | null) => {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json<{ predecessor?: string; duration?: number }>(worksheet);
+
+            const newRows = jsonData.map((row, index) => ({
+                id: index + 1,
+                predecessor: row.predecessor || "",
+                duration: row.duration || 0
+            }));
+
+            setRows(newRows);
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     // Funkcja obsługująca zapis i rysowanie wykresu
     const handleSave = () => {
         const newGraphData = processDataForGoJS(rows);
@@ -290,6 +313,16 @@ export const CpmPreForm = () => {
                         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
                     }}
                 >
+
+                    <FileInput
+                        label="Wczytaj dane z Excela"
+                        placeholder="Wybierz plik XLS/XLSX"
+                        accept=".xls,.xlsx"
+                        onChange={handleFileUpload}
+                        leftSection={<IconUpload size={18} />}
+                        mb="md"
+                    />
+
                     <Container>
                         <Select
                             label="Jednostka czasu"
