@@ -7,7 +7,7 @@ interface DiagramDivElement extends HTMLDivElement {
 
 interface GraphData {
     nodes: { key: number; t0: number; t1: number; L: number, label: string }[];
-    links: { from: number; to: number; label: string; duration: number,color:string }[];
+    links: { from: number; to: number; label: string; duration: number, color: string }[];
 }
 
 interface GraphComponentProps {
@@ -27,19 +27,48 @@ const GraphComponentPre = ({ data }: GraphComponentProps) => {
                 diagram = $(go.Diagram, diagramRef.current, {
                     "undoManager.isEnabled": true,
                     layout: $(go.LayeredDigraphLayout, { direction: 0 }),
-                    padding: 20
+                    padding: 20,
+                    "animationManager.isEnabled": false
                 });
 
                 diagram.nodeTemplate =
                     $(go.Node, "Auto",
-                        $(go.Shape, "Circle", { fill: "lightblue", stroke: "black", width: 100, height: 100 }),
-                        $(go.Panel, "Table",
-                            $(go.RowColumnDefinition, { column: 1, width: 80 }),
-                            $(go.TextBlock, { row: 0, column: 1, font: "bold 12pt sans-serif" }, new go.Binding("text", "label")),
-                            $(go.TextBlock, { row: 1, column: 1, font: "10pt sans-serif" }, new go.Binding("text", "t0", t0 => `t0: ${t0}`)),
-                            $(go.TextBlock, { row: 2, column: 1, font: "10pt sans-serif" }, new go.Binding("text", "t1", t1 => `t1: ${t1}`)),
-                            $(go.TextBlock, { row: 3, column: 1, font: "10pt sans-serif" }, new go.Binding("text", "L", L => `L: ${L}`))
-                        )
+                        $(go.Shape, "Circle", {
+                            fill: "lightblue",
+                            stroke: "black",
+                            width: 140,
+                            height: 140
+                        }),
+                        $(go.Shape, {
+                            geometryString: "M 0 0 L 140 140 M 0 140 L 140 0",
+                            stroke: "black",
+                            strokeWidth: 1
+                        }),
+                        // Nazwa węzła na górze (używamy label zamiast key)
+                        $(go.TextBlock, {
+                            alignment: new go.Spot(0.5, 0.5, 0, -40),
+                            font: "bold 12pt sans-serif",
+                            textAlign: "center",
+                            width: 120
+                        }, new go.Binding("text", "label")),
+                        // Lewa ćwiartka - t0
+                        $(go.TextBlock, {
+                            alignment: new go.Spot(0.5, 0.5, -30, 0),
+                            textAlign: "center",
+                            width: 60
+                        }, new go.Binding("text", "t0")),
+                        // Prawa ćwiartka - t1
+                        $(go.TextBlock, {
+                            alignment: new go.Spot(0.5, 0.5, 30, 0),
+                            textAlign: "center",
+                            width: 60
+                        }, new go.Binding("text", "t1")),
+                        // Dolna ćwiartka - L
+                        $(go.TextBlock, {
+                            alignment: new go.Spot(0.5, 0.5, 0, 35),
+                            textAlign: "center",
+                            width: 60
+                        }, new go.Binding("text", "L"))
                     );
 
                 diagram.linkTemplate =
@@ -47,7 +76,6 @@ const GraphComponentPre = ({ data }: GraphComponentProps) => {
                         { routing: go.Link.AvoidsNodes, corner: 10 },
                         $(go.Shape, { strokeWidth: 2 }, new go.Binding("stroke", "color")),
                         $(go.Shape, { toArrow: "OpenTriangle" }, new go.Binding("stroke", "color"), new go.Binding("fill", "color")),
-                       // $(go.TextBlock, { segmentOffset: new go.Point(0, -15), font: "10pt sans-serif" }, new go.Binding("text", "label")),
                         $(go.TextBlock, { segmentOffset: new go.Point(0, 15), font: "10pt sans-serif" }, new go.Binding("text", "duration"))
                     );
 

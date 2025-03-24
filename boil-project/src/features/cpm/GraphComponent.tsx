@@ -7,7 +7,7 @@ interface DiagramDivElement extends HTMLDivElement {
 
 interface GraphData {
     nodes: { key: number; t0: number; t1: number; L: number }[];
-    links: { from: number; to: number; label: string; duration: number,color:string }[];
+    links: { from: number; to: number; label: string; duration: number, color: string }[];
 }
 
 interface GraphComponentProps {
@@ -27,19 +27,68 @@ const GraphComponent = ({ data }: GraphComponentProps) => {
                 diagram = $(go.Diagram, diagramRef.current, {
                     "undoManager.isEnabled": true,
                     layout: $(go.LayeredDigraphLayout, { direction: 0 }),
-                    padding: 20
+                    padding: 20,
+                    "animationManager.isEnabled": false
                 });
+
+                // Funkcja do dynamicznego ustawiania rozmiaru czcionki
+                const setFontSize = (val: string) => {
+                    const length = val ? val.toString().length : 0;
+                    return length > 2 ? "10pt sans-serif" : "12pt sans-serif";
+                };
 
                 diagram.nodeTemplate =
                     $(go.Node, "Auto",
-                        $(go.Shape, "Circle", { fill: "lightblue", stroke: "black", width: 100, height: 100 }),
-                        $(go.Panel, "Table",
-                            $(go.RowColumnDefinition, { column: 1, width: 80 }),
-                            $(go.TextBlock, { row: 0, column: 1, font: "bold 12pt sans-serif" }, new go.Binding("text", "key")),
-                            $(go.TextBlock, { row: 1, column: 1, font: "10pt sans-serif" }, new go.Binding("text", "t0", t0 => `t0: ${t0}`)),
-                            $(go.TextBlock, { row: 2, column: 1, font: "10pt sans-serif" }, new go.Binding("text", "t1", t1 => `t1: ${t1}`)),
-                            $(go.TextBlock, { row: 3, column: 1, font: "10pt sans-serif" }, new go.Binding("text", "L", L => `L: ${L}`))
-                        )
+                        $(go.Shape, "Circle", {
+                            fill: "lightblue",
+                            stroke: "black",
+                            width: 140,  // Zwiększone o 20px dla lepszego dopasowania
+                            height: 140
+                        }),
+                        $(go.Shape, {
+                            geometryString: "M 0 0 L 140 140 M 0 140 L 140 0",
+                            stroke: "black",
+                            strokeWidth: 1
+                        }),
+                        // Nazwa węzła na górze
+                        $(go.TextBlock, {
+                            alignment: new go.Spot(0.5, 0.5, 0, -40),
+                            font: "bold 12pt sans-serif",
+                            textAlign: "center",
+                            width: 120,
+                            //wrap: go.TextBlock.None,
+                            //overflow: go.TextBlock.OverflowEllipsis
+                        }, new go.Binding("text", "key")),
+                        // Lewa ćwiartka - t0
+                        $(go.TextBlock, {
+                                alignment: new go.Spot(0.5, 0.5, -30, 0),
+                                textAlign: "center",
+                                width: 60,
+                                //wrap: go.TextBlock.None,
+                                //overflow: go.TextBlock.OverflowEllipsis
+                            },
+                            new go.Binding("text", "t0"),
+                            new go.Binding("font", "t0", setFontSize)),
+                        // Prawa ćwiartka - t1
+                        $(go.TextBlock, {
+                                alignment: new go.Spot(0.5, 0.5, 30, 0),
+                                textAlign: "center",
+                                width: 60,
+                                //wrap: go.TextBlock.None,
+                                //overflow: go.TextBlock.OverflowEllipsis
+                            },
+                            new go.Binding("text", "t1"),
+                            new go.Binding("font", "t1", setFontSize)),
+                        // Dolna ćwiartka - L
+                        $(go.TextBlock, {
+                                alignment: new go.Spot(0.5, 0.5, 0, 35),
+                                textAlign: "center",
+                                width: 60,
+                                //wrap: go.TextBlock.None,
+                                //overflow: go.TextBlock.OverflowEllipsis
+                            },
+                            new go.Binding("text", "L"),
+                            new go.Binding("font", "L", setFontSize))
                     );
 
                 diagram.linkTemplate =
@@ -58,7 +107,7 @@ const GraphComponent = ({ data }: GraphComponentProps) => {
         }
     }, [data]);
 
-    return <div ref={diagramRef} style={{ width: "100%", height: "100%", backgroundColor: "#f0f0f0" }} />;
+    return <div ref={diagramRef} style={{ width: "100%", height: "800px", backgroundColor: "#f0f0f0" }} />;
 };
 
 export default GraphComponent;

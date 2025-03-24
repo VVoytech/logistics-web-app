@@ -5,10 +5,10 @@ import {
     TextInput,
     NumberInput,
     Card,
-    Text, Select
+    Text, Select, Flex
 } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { IconPlus, IconTrash } from "@tabler/icons-react";
+import {IconDeviceFloppy, IconPlus, IconTrash} from "@tabler/icons-react";
 import GraphComponentPre from "./GraphComponentPre";
 import GanttChart from "./GanntChart.tsx";
 
@@ -342,12 +342,23 @@ export const CpmPreForm = () => {
                             ))}
                             </tbody>
                         </Table>
-                        <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
-                            Dodaj wiersz
-                        </Button>
-                        <Button onClick={handleSave} leftSection={<IconPlus size={18} />} mt="md">
-                            Zapisz i rysuj wykres
-                        </Button>
+
+                        <Flex
+                            mih={50}
+                            gap="md"
+                            justify="center"
+                            align="center"
+                            direction="row"
+                            wrap="wrap"
+                        >
+                            <Button onClick={addRow} leftSection={<IconPlus size={18} />} mt="md">
+                                Dodaj wiersz
+                            </Button>
+                            <Button onClick={handleSave} leftSection={<IconDeviceFloppy size={18} />} mt="md">
+                                Zapisz i rysuj wykres
+                            </Button>
+                        </Flex>
+
                         {criticalPath.length > 0 && (
                             <Card shadow="sm" mt="md" p="sm" style={{ backgroundColor: "#e9f5ff" }}>
                                 <Text fw={500} size="lg" color="blue">
