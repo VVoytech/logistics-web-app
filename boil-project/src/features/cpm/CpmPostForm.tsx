@@ -4,13 +4,24 @@ import {
     Table,
     TextInput,
     NumberInput,
-    Card, Text, Select, Flex, FileInput
+    Card, Text, Select, Flex, FileInput,
+    Menu, Divider
 } from "@mantine/core";
 import {useEffect, useState} from "react";
-import {IconDeviceFloppy, IconPlus, IconTrash, IconUpload} from "@tabler/icons-react";
+import {
+    IconCategory2,
+    IconDeviceFloppy,
+    IconHome,
+    IconPlus,
+    IconSchema,
+    IconTrash,
+    IconTruck,
+    IconUpload
+} from "@tabler/icons-react";
 import GraphComponent from "./GraphComponent";
 import GanttChart from "./GanntChart.tsx";
 import * as XLSX from 'xlsx';
+import {useNavigate} from "react-router-dom";
 
 // Definicja typu dla danych wierszy
 interface Row {
@@ -78,6 +89,7 @@ export const CpmPostForm = () => {
     const [rows, setRows] = useState<Row[]>([{ id: 1, predecessor: "", duration: 0 }]);
     const [criticalPath, setCriticalPath] = useState<string[]>([]);
     const [timeUnit, setTimeUnit] = useState<"minuty" | "godziny" | "dni">("dni");
+    const navigate = useNavigate();
 
     useEffect(() => {
         const newGraphData = processDataForGoJS(rows);
@@ -99,6 +111,14 @@ export const CpmPostForm = () => {
         setRows(rows.map((row) =>
             row.id === id ? { ...row, [field]: value ?? 0 } : row
         ));
+    };
+
+    const handleHome = () => {
+        navigate("/");
+    };
+
+    const handlePre = () => {
+        navigate("/cpmpre");
     };
 
     const handleFileUpload = (file: File | null) => {
@@ -245,7 +265,9 @@ export const CpmPostForm = () => {
 
 
     return (
+
         <div style={{display: "flex", flexDirection: "column", gap: "2vw", padding: "2vw"}}>
+
             <div style={{display: "flex", gap: "2vw", width: "100%"}}>
                 <Card
                     shadow="md"
@@ -261,6 +283,33 @@ export const CpmPostForm = () => {
                 >
 
                     <Container>
+
+                        <Menu shadow="md" width={200}>
+                            <Menu.Target>
+                                <Button leftSection={<IconCategory2 />}>MENU</Button>
+                            </Menu.Target>
+
+                            <Menu.Dropdown>
+                                <Menu.Item
+                                    leftSection={<IconHome size={18} />}
+                                    onClick={handleHome}
+                                >
+                                    Strona główna
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconSchema size={18} />}
+                                    onClick={handlePre}
+                                >
+                                    CPM poprzednik
+                                </Menu.Item>
+                                <Menu.Item leftSection={<IconTruck size={18} />}>
+                                    Zagadnienie pośrednika
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>
+
+                        <Divider my="md" />
+
                         <FileInput
                             label="Wczytaj dane z Excela"
                             placeholder="Wybierz plik XLS/XLSX"
@@ -282,7 +331,7 @@ export const CpmPostForm = () => {
                             mb="md"
                         />
 
-
+                        <Divider my="md" />
 
                         <Table striped highlightOnHover>
                             <thead>
@@ -324,6 +373,9 @@ export const CpmPostForm = () => {
                             ))}
                             </tbody>
                         </Table>
+
+                        <Divider my="md" />
+
                         <Flex
                             mih={50}
                             gap="md"
@@ -339,6 +391,9 @@ export const CpmPostForm = () => {
                                 Zapisz i rysuj wykres
                             </Button>
                         </Flex>
+
+                        <Divider my="md" />
+
                         {criticalPath.length > 0 && (
                             <Card shadow="sm" mt="md" p="sm" style={{backgroundColor: "#e9f5ff"}}>
                                 <Text fw={500} size="lg" color="blue">
