@@ -25,8 +25,12 @@ import {useNavigate} from "react-router-dom";
 // Definicja typu dla danych wierszy
 interface Row {
     id: number;
-    predecessor: string; // Poprzedzająca czynność
+    predecessor: string;
     duration: number;
+    errors?: {
+        predecessor?: string;
+        duration?: string;
+    };
 }
 
 // Definicja typu dla GraphData
@@ -154,21 +158,90 @@ export const CpmPreForm = () => {
         setGraphData(newGraphData);
     }, [rows]);
 
+    // Funkcja walidująca pojedynczy wiersz
+    const validateRow = (row: Row, allRows: Row[], index: number): Row => {
+        const errors: { predecessor?: string; duration?: string } = {};
+
+        // Walidacja czasu trwania
+        if (row.duration <= 0) {
+            errors.duration = "Czas trwania musi być większy od 0";
+        }
+
+        // Walidacja poprzedników
+        if (row.predecessor.trim() === "") {
+            errors.predecessor = "Podaj poprzedniki lub '-' jeśli brak";
+        } else {
+            const predecessors = row.predecessor.split(',').map(p => p.trim());
+
+            // Sprawdź czy podano '-' i inne wartości jednocześnie
+            if (predecessors.includes("-") && predecessors.length > 1) {
+                errors.predecessor = "Nie można łączyć '-' z innymi poprzednikami";
+            }
+
+            // Sprawdź czy poprzedniki istnieją
+            if (!predecessors.includes("-")) {
+                predecessors.forEach(p => {
+                    if (!alphabet.includes(p) || alphabet.indexOf(p) >= index) {
+                        errors.predecessor = `Poprzednik "${p}" jest nieprawidłowy lub występuje później`;
+                    }
+                });
+            }
+
+            // Sprawdź cykliczne zależności
+            if (hasCircularDependency(row, allRows, index)) {
+                errors.predecessor = "Wykryto cykliczną zależność";
+            }
+        }
+
+        return { ...row, errors: Object.keys(errors).length > 0 ? errors : undefined };
+    };
+
+// Funkcja sprawdzająca cykliczne zależności
+    const hasCircularDependency = (row: Row, allRows: Row[], currentIndex: number): boolean => {
+        const predecessors = row.predecessor.split(',').map(p => p.trim());
+
+        for (const p of predecessors) {
+            if (p === "-") continue;
+
+            const predIndex = alphabet.indexOf(p);
+            if (predIndex < 0 || predIndex >= allRows.length) continue;
+
+            const predRow = allRows[predIndex];
+            if (predRow.predecessor.includes(alphabet[currentIndex])) {
+                return true;
+            }
+
+            // Sprawdź rekurencyjnie
+            if (hasCircularDependency(predRow, allRows, predIndex)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+// Funkcja walidująca wszystkie wiersze
+    const validateAllRows = (rows: Row[]): Row[] => {
+        return rows.map((row, index) => validateRow(row, rows, index));
+    };
+
     // Funkcja dodająca nowy wiersz
     const addRow = () => {
-        setRows([...rows, { id: rows.length + 1, predecessor: "", duration: 0 }]);
+        const newRows = [...rows, { id: rows.length + 1, predecessor: "", duration: 0 }];
+        setRows(newRows);
     };
 
     // Funkcja usuwająca wiersz
     const removeRow = (id: number) => {
-        setRows(rows.filter((row) => row.id !== id));
+        const newRows = rows.filter((row) => row.id !== id);
+        setRows(newRows);
     };
 
-    // Funkcja aktualizująca wartość pola w wierszu
     const updateRow = (id: number, field: keyof Row, value: string | number | null) => {
-        setRows(rows.map((row) =>
+        const newRows = rows.map((row) =>
             row.id === id ? { ...row, [field]: value ?? 0 } : row
-        ));
+        );
+        setRows(validateAllRows(newRows));
     };
 
     const handleHome = () => {
@@ -196,14 +269,26 @@ export const CpmPreForm = () => {
                 duration: row.duration || 0
             }));
 
-            setRows(newRows);
+            setRows(validateAllRows(newRows));
         };
         reader.readAsArrayBuffer(file);
     };
 
     // Funkcja obsługująca zapis i rysowanie wykresu
     const handleSave = () => {
-        const newGraphData = processDataForGoJS(rows);
+        const validatedRows = validateAllRows(rows);
+
+        // Sprawdź czy są jakieś błędy
+        const hasErrors = validatedRows.some(row => row.errors);
+
+        if (hasErrors) {
+            setRows(validatedRows);
+            alert("Popraw błędy w formularzu przed zapisem");
+            return;
+        }
+
+        // Kontynuuj przetwarzanie danych jeśli nie ma błędów
+        const newGraphData = processDataForGoJS(validatedRows);
 
         // Inicjalizacja t1 dla wszystkich węzłów
         newGraphData.nodes.forEach(node => {
@@ -385,6 +470,26 @@ export const CpmPreForm = () => {
 
                         <Divider my="md" />
 
+                        {rows.some(row => row.errors) && (
+                            <Card shadow="sm" mb="md" p="sm" style={{backgroundColor: "#fff4f4"}}>
+                                <Text fw={500} size="lg" color="red">
+                                    Formularz zawiera błędy. Popraw je przed zapisem.
+                                </Text>
+                                <ul>
+                                    {rows.map((row, index) => (
+                                        row.errors && (
+                                            <li key={row.id}>
+                                                <Text span fw={500}>{alphabet[index]}: </Text>
+                                                {row.errors.predecessor && <Text span>{row.errors.predecessor}</Text>}
+                                                {row.errors.duration && <Text span>{row.errors.duration}</Text>}
+                                            </li>
+                                        )
+                                    ))}
+                                </ul>
+                            </Card>
+                        )}
+
+
                         <Table striped highlightOnHover>
                             <thead>
                             <tr>
@@ -403,6 +508,7 @@ export const CpmPreForm = () => {
                                             value={row.predecessor}
                                             onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
                                             placeholder="Poprzednia czynność (np. A,B lub -)"
+                                            error={row.errors?.predecessor}
                                         />
                                     </td>
                                     <td>
@@ -413,11 +519,15 @@ export const CpmPreForm = () => {
                                             step={1}
                                             hideControls
                                             placeholder="Czas"
+                                            error={row.errors?.duration}
                                         />
                                     </td>
                                     <td>
-                                        <Button color="red" onClick={() => removeRow(row.id)}
-                                                disabled={rows.length === 1}>
+                                        <Button
+                                            color="red"
+                                            onClick={() => removeRow(row.id)}
+                                            disabled={rows.length === 1}
+                                        >
                                             <IconTrash size={18}/>
                                         </Button>
                                     </td>
@@ -436,10 +546,20 @@ export const CpmPreForm = () => {
                             direction="row"
                             wrap="wrap"
                         >
-                            <Button onClick={addRow} leftSection={<IconPlus size={18}/>} mt="md">
+                            <Button
+                                onClick={addRow}
+                                leftSection={<IconPlus size={18}/>}
+                                mt="md"
+                            >
                                 Dodaj wiersz
                             </Button>
-                            <Button onClick={handleSave} leftSection={<IconDeviceFloppy size={18}/>} mt="md">
+                            <Button
+                                onClick={handleSave}
+                                leftSection={<IconDeviceFloppy size={18}/>}
+                                mt="md"
+                                disabled={rows.some(row => row.errors)}
+                                color={rows.some(row => row.errors) ? "gray" : "blue"}
+                            >
                                 Zapisz i rysuj wykres
                             </Button>
                         </Flex>
