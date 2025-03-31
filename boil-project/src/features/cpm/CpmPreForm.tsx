@@ -48,47 +48,43 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności
 
 const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) => {
     const nodes: { key: number; t0: number; t1: number; L: number; label: string }[] = [
-        { key: 1, t0: 0, t1: 0, L: 0, label: 'START' } // Węzeł startowy (key = 1, label = 'START')
+        { key: 1, t0: 0, t1: 0, L: 0, label: 'START' }
     ];
     const links: { from: number; to: number; label: string; duration: number; color: string }[] = [];
     const usedKeys = new Set<number>();
     const t0Map = new Map<number, number>();
 
-    usedKeys.add(1); // Węzeł startowy ma key = 1
+    usedKeys.add(1);
     t0Map.set(1, 0);
 
     rows.forEach((row, index) => {
-        const activity = index + 2; // Przypisujemy numer do czynności
-        const predecessors = row.predecessor.split(',').map(p => p.trim()); // Dzielimy poprzedników
+        const activity = index + 2;
+        const predecessors = row.predecessor.split(',').map(p => p.trim());
 
-        // Dodajemy węzeł dla aktualnej czynności, jeśli jeszcze nie istnieje
         if (!usedKeys.has(activity)) {
             nodes.push({ key: activity, t0: 0, t1: 0, L: 0, label: alphabet[index] });
             usedKeys.add(activity);
             t0Map.set(activity, 0);
         }
 
-        // Tworzymy połączenia na podstawie poprzedników
-        if (predecessors[0] === '-') {
-            // Jeśli nie ma poprzedników, łączymy z węzłem START (key = 1)
-            links.push({
-                from: 1, // Węzeł startowy
-                to: activity,
-                label: `START-${alphabet[index]}`,
-                duration: row.duration,
-                color: 'black'
-            });
-
-            // Aktualizujemy t0 dla węzła
-            const newT0 = (t0Map.get(1) || 0) + row.duration;
-            t0Map.set(activity, Math.max(t0Map.get(activity) || 0, newT0));
-        } else {
-            // Łączymy z każdym poprzednikiem
-            predecessors.forEach((predecessor) => {
-                const predecessorKey = alphabet.indexOf(predecessor) + 2; // Konwertujemy literę na numer
+        // Zmieniamy logikę tutaj - usuwamy wyłączność przypadku '-'
+        predecessors.forEach((predecessor) => {
+            if (predecessor === '-') {
+                // Łączymy z węzłem START
+                links.push({
+                    from: 1,
+                    to: activity,
+                    label: `START-${alphabet[index]}`,
+                    duration: row.duration,
+                    color: 'black'
+                });
+                const newT0 = (t0Map.get(1) || 0) + row.duration;
+                t0Map.set(activity, Math.max(t0Map.get(activity) || 0, newT0));
+            } else {
+                // Łączymy z normalnym poprzednikiem
+                const predecessorKey = alphabet.indexOf(predecessor) + 2;
 
                 if (!usedKeys.has(predecessorKey)) {
-                    // Jeśli poprzednik nie istnieje, dodajemy go
                     nodes.push({ key: predecessorKey, t0: 0, t1: 0, L: 0, label: predecessor });
                     usedKeys.add(predecessorKey);
                     t0Map.set(predecessorKey, 0);
@@ -102,41 +98,35 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
                     color: 'black'
                 });
 
-                // Aktualizujemy t0 dla węzła
                 const newT0 = (t0Map.get(predecessorKey) || 0) + row.duration;
                 t0Map.set(activity, Math.max(t0Map.get(activity) || 0, newT0));
-            });
-        }
+            }
+        });
     });
 
-    // Dodajemy węzeł KONIEC
-    const endNodeKey = rows.length + 2; // Numer dla węzła KONIEC
+    // Reszta funkcji pozostaje bez zmian
+    const endNodeKey = rows.length + 2;
     nodes.push({ key: endNodeKey, t0: 0, t1: 0, L: 0, label: 'KONIEC' });
 
-    // Znajdujemy węzły, które nie mają wychodzących połączeń
     const nodesWithoutOutgoingLinks = new Set(nodes.map(node => node.key));
     links.forEach(link => {
         nodesWithoutOutgoingLinks.delete(link.from);
     });
 
-    // Łączymy węzły bez wychodzących połączeń z węzłem KONIEC
     nodesWithoutOutgoingLinks.forEach(nodeKey => {
-        if (nodeKey !== endNodeKey) { // Nie łączymy KONIEC z samym sobą
+        if (nodeKey !== endNodeKey) {
             links.push({
                 from: nodeKey,
                 to: endNodeKey,
-                label: `${nodes.find(node => node.key === nodeKey)?.label}-KONIEC`, // Etykieta w formacie A-KONIEC, B-KONIEC, itd.
+                label: `${nodes.find(node => node.key === nodeKey)?.label}-KONIEC`,
                 duration: 0,
                 color: 'black'
             });
-
-            // Aktualizujemy t0 dla węzła KONIEC
             const nodeT0 = t0Map.get(nodeKey) || 0;
             t0Map.set(endNodeKey, Math.max(t0Map.get(endNodeKey) || 0, nodeT0));
         }
     });
 
-    // Aktualizujemy t0 dla wszystkich węzłów
     nodes.forEach(node => {
         node.t0 = t0Map.get(node.key) || 0;
     });
@@ -162,32 +152,25 @@ export const CpmPreForm = () => {
     const validateRow = (row: Row, allRows: Row[], index: number): Row => {
         const errors: { predecessor?: string; duration?: string } = {};
 
-        // Walidacja czasu trwania
         if (row.duration <= 0) {
             errors.duration = "Czas trwania musi być większy od 0";
         }
 
-        // Walidacja poprzedników
         if (row.predecessor.trim() === "") {
             errors.predecessor = "Podaj poprzedniki lub '-' jeśli brak";
         } else {
             const predecessors = row.predecessor.split(',').map(p => p.trim());
 
-            // Sprawdź czy podano '-' i inne wartości jednocześnie
-            if (predecessors.includes("-") && predecessors.length > 1) {
-                errors.predecessor = "Nie można łączyć '-' z innymi poprzednikami";
-            }
+            // Usuwamy sprawdzanie czy '-' jest łączony z innymi wartościami
+            predecessors.forEach(p => {
+                if (p !== '-' && !alphabet.includes(p)) {
+                    errors.predecessor = `Poprzednik "${p}" jest nieprawidłowy`;
+                }
+                if (p !== '-' && alphabet.indexOf(p) >= index) {
+                    errors.predecessor = `Poprzednik "${p}" występuje później`;
+                }
+            });
 
-            // Sprawdź czy poprzedniki istnieją
-            if (!predecessors.includes("-")) {
-                predecessors.forEach(p => {
-                    if (!alphabet.includes(p) || alphabet.indexOf(p) >= index) {
-                        errors.predecessor = `Poprzednik "${p}" jest nieprawidłowy lub występuje później`;
-                    }
-                });
-            }
-
-            // Sprawdź cykliczne zależności
             if (hasCircularDependency(row, allRows, index)) {
                 errors.predecessor = "Wykryto cykliczną zależność";
             }
