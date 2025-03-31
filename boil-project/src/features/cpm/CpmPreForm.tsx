@@ -455,7 +455,12 @@ export const CpmPreForm = () => {
 
                         {rows.some(row => row.errors) && (
                             <Card shadow="sm" mb="md" p="sm" style={{backgroundColor: "#fff4f4"}}>
-                                <Text fw={500} size="lg" color="red">
+                                <Text fw={500} size="lg" styles={{
+                                        root: {
+                                            color: "var(--mantine-color-red-6)"
+                                        }
+                                    }}
+                                >
                                     Formularz zawiera błędy. Popraw je przed zapisem.
                                 </Text>
                                 <ul>
@@ -551,7 +556,12 @@ export const CpmPreForm = () => {
 
                         {criticalPath.length > 0 && (
                             <Card shadow="sm" mt="md" p="sm" style={{backgroundColor: "#e9f5ff"}}>
-                                <Text fw={500} size="lg" color="blue">
+                                <Text fw={500} size="lg" styles={{
+                                        root: {
+                                            color: "var(--mantine-color-blue-6)"
+                                        }
+                                    }}
+                                >
                                     Ścieżka krytyczna: {criticalPath.join(" → ")}
                                 </Text>
                             </Card>
