@@ -25,8 +25,12 @@ import {useNavigate} from "react-router-dom";
 // Definicja typu dla danych wierszy
 interface Row {
     id: number;
-    predecessor: string; // Poprzedzająca czynność
+    predecessor: string;
     duration: number;
+    errors?: {
+        predecessor?: string;
+        duration?: string;
+    };
 }
 
 // Definicja typu dla GraphData
@@ -44,47 +48,43 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności
 
 const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) => {
     const nodes: { key: number; t0: number; t1: number; L: number; label: string }[] = [
-        { key: 1, t0: 0, t1: 0, L: 0, label: 'START' } // Węzeł startowy (key = 1, label = 'START')
+        { key: 1, t0: 0, t1: 0, L: 0, label: 'START' }
     ];
     const links: { from: number; to: number; label: string; duration: number; color: string }[] = [];
     const usedKeys = new Set<number>();
     const t0Map = new Map<number, number>();
 
-    usedKeys.add(1); // Węzeł startowy ma key = 1
+    usedKeys.add(1);
     t0Map.set(1, 0);
 
     rows.forEach((row, index) => {
-        const activity = index + 2; // Przypisujemy numer do czynności
-        const predecessors = row.predecessor.split(',').map(p => p.trim()); // Dzielimy poprzedników
+        const activity = index + 2;
+        const predecessors = row.predecessor.split(',').map(p => p.trim());
 
-        // Dodajemy węzeł dla aktualnej czynności, jeśli jeszcze nie istnieje
         if (!usedKeys.has(activity)) {
             nodes.push({ key: activity, t0: 0, t1: 0, L: 0, label: alphabet[index] });
             usedKeys.add(activity);
             t0Map.set(activity, 0);
         }
 
-        // Tworzymy połączenia na podstawie poprzedników
-        if (predecessors[0] === '-') {
-            // Jeśli nie ma poprzedników, łączymy z węzłem START (key = 1)
-            links.push({
-                from: 1, // Węzeł startowy
-                to: activity,
-                label: `START-${alphabet[index]}`,
-                duration: row.duration,
-                color: 'black'
-            });
-
-            // Aktualizujemy t0 dla węzła
-            const newT0 = (t0Map.get(1) || 0) + row.duration;
-            t0Map.set(activity, Math.max(t0Map.get(activity) || 0, newT0));
-        } else {
-            // Łączymy z każdym poprzednikiem
-            predecessors.forEach((predecessor) => {
-                const predecessorKey = alphabet.indexOf(predecessor) + 2; // Konwertujemy literę na numer
+        // Zmieniamy logikę tutaj - usuwamy wyłączność przypadku '-'
+        predecessors.forEach((predecessor) => {
+            if (predecessor === '-') {
+                // Łączymy z węzłem START
+                links.push({
+                    from: 1,
+                    to: activity,
+                    label: `START-${alphabet[index]}`,
+                    duration: row.duration,
+                    color: 'black'
+                });
+                const newT0 = (t0Map.get(1) || 0) + row.duration;
+                t0Map.set(activity, Math.max(t0Map.get(activity) || 0, newT0));
+            } else {
+                // Łączymy z normalnym poprzednikiem
+                const predecessorKey = alphabet.indexOf(predecessor) + 2;
 
                 if (!usedKeys.has(predecessorKey)) {
-                    // Jeśli poprzednik nie istnieje, dodajemy go
                     nodes.push({ key: predecessorKey, t0: 0, t1: 0, L: 0, label: predecessor });
                     usedKeys.add(predecessorKey);
                     t0Map.set(predecessorKey, 0);
@@ -98,41 +98,35 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
                     color: 'black'
                 });
 
-                // Aktualizujemy t0 dla węzła
                 const newT0 = (t0Map.get(predecessorKey) || 0) + row.duration;
                 t0Map.set(activity, Math.max(t0Map.get(activity) || 0, newT0));
-            });
-        }
+            }
+        });
     });
 
-    // Dodajemy węzeł KONIEC
-    const endNodeKey = rows.length + 2; // Numer dla węzła KONIEC
+    // Reszta funkcji pozostaje bez zmian
+    const endNodeKey = rows.length + 2;
     nodes.push({ key: endNodeKey, t0: 0, t1: 0, L: 0, label: 'KONIEC' });
 
-    // Znajdujemy węzły, które nie mają wychodzących połączeń
     const nodesWithoutOutgoingLinks = new Set(nodes.map(node => node.key));
     links.forEach(link => {
         nodesWithoutOutgoingLinks.delete(link.from);
     });
 
-    // Łączymy węzły bez wychodzących połączeń z węzłem KONIEC
     nodesWithoutOutgoingLinks.forEach(nodeKey => {
-        if (nodeKey !== endNodeKey) { // Nie łączymy KONIEC z samym sobą
+        if (nodeKey !== endNodeKey) {
             links.push({
                 from: nodeKey,
                 to: endNodeKey,
-                label: `${nodes.find(node => node.key === nodeKey)?.label}-KONIEC`, // Etykieta w formacie A-KONIEC, B-KONIEC, itd.
+                label: `${nodes.find(node => node.key === nodeKey)?.label}-KONIEC`,
                 duration: 0,
                 color: 'black'
             });
-
-            // Aktualizujemy t0 dla węzła KONIEC
             const nodeT0 = t0Map.get(nodeKey) || 0;
             t0Map.set(endNodeKey, Math.max(t0Map.get(endNodeKey) || 0, nodeT0));
         }
     });
 
-    // Aktualizujemy t0 dla wszystkich węzłów
     nodes.forEach(node => {
         node.t0 = t0Map.get(node.key) || 0;
     });
@@ -154,21 +148,83 @@ export const CpmPreForm = () => {
         setGraphData(newGraphData);
     }, [rows]);
 
+    // Funkcja walidująca pojedynczy wiersz
+    const validateRow = (row: Row, allRows: Row[], index: number): Row => {
+        const errors: { predecessor?: string; duration?: string } = {};
+
+        if (row.duration <= 0) {
+            errors.duration = "Czas trwania musi być większy od 0";
+        }
+
+        if (row.predecessor.trim() === "") {
+            errors.predecessor = "Podaj poprzedniki lub '-' jeśli brak";
+        } else {
+            const predecessors = row.predecessor.split(',').map(p => p.trim());
+
+            // Usuwamy sprawdzanie czy '-' jest łączony z innymi wartościami
+            predecessors.forEach(p => {
+                if (p !== '-' && !alphabet.includes(p)) {
+                    errors.predecessor = `Poprzednik "${p}" jest nieprawidłowy`;
+                }
+                if (p !== '-' && alphabet.indexOf(p) >= index) {
+                    errors.predecessor = `Poprzednik "${p}" występuje później`;
+                }
+            });
+
+            if (hasCircularDependency(row, allRows, index)) {
+                errors.predecessor = "Wykryto cykliczną zależność";
+            }
+        }
+
+        return { ...row, errors: Object.keys(errors).length > 0 ? errors : undefined };
+    };
+
+// Funkcja sprawdzająca cykliczne zależności
+    const hasCircularDependency = (row: Row, allRows: Row[], currentIndex: number): boolean => {
+        const predecessors = row.predecessor.split(',').map(p => p.trim());
+
+        for (const p of predecessors) {
+            if (p === "-") continue;
+
+            const predIndex = alphabet.indexOf(p);
+            if (predIndex < 0 || predIndex >= allRows.length) continue;
+
+            const predRow = allRows[predIndex];
+            if (predRow.predecessor.includes(alphabet[currentIndex])) {
+                return true;
+            }
+
+            // Sprawdź rekurencyjnie
+            if (hasCircularDependency(predRow, allRows, predIndex)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+// Funkcja walidująca wszystkie wiersze
+    const validateAllRows = (rows: Row[]): Row[] => {
+        return rows.map((row, index) => validateRow(row, rows, index));
+    };
+
     // Funkcja dodająca nowy wiersz
     const addRow = () => {
-        setRows([...rows, { id: rows.length + 1, predecessor: "", duration: 0 }]);
+        const newRows = [...rows, { id: rows.length + 1, predecessor: "", duration: 0 }];
+        setRows(newRows);
     };
 
     // Funkcja usuwająca wiersz
     const removeRow = (id: number) => {
-        setRows(rows.filter((row) => row.id !== id));
+        const newRows = rows.filter((row) => row.id !== id);
+        setRows(newRows);
     };
 
-    // Funkcja aktualizująca wartość pola w wierszu
     const updateRow = (id: number, field: keyof Row, value: string | number | null) => {
-        setRows(rows.map((row) =>
+        const newRows = rows.map((row) =>
             row.id === id ? { ...row, [field]: value ?? 0 } : row
-        ));
+        );
+        setRows(validateAllRows(newRows));
     };
 
     const handleHome = () => {
@@ -196,14 +252,26 @@ export const CpmPreForm = () => {
                 duration: row.duration || 0
             }));
 
-            setRows(newRows);
+            setRows(validateAllRows(newRows));
         };
         reader.readAsArrayBuffer(file);
     };
 
     // Funkcja obsługująca zapis i rysowanie wykresu
     const handleSave = () => {
-        const newGraphData = processDataForGoJS(rows);
+        const validatedRows = validateAllRows(rows);
+
+        // Sprawdź czy są jakieś błędy
+        const hasErrors = validatedRows.some(row => row.errors);
+
+        if (hasErrors) {
+            setRows(validatedRows);
+            alert("Popraw błędy w formularzu przed zapisem");
+            return;
+        }
+
+        // Kontynuuj przetwarzanie danych jeśli nie ma błędów
+        const newGraphData = processDataForGoJS(validatedRows);
 
         // Inicjalizacja t1 dla wszystkich węzłów
         newGraphData.nodes.forEach(node => {
@@ -385,6 +453,31 @@ export const CpmPreForm = () => {
 
                         <Divider my="md" />
 
+                        {rows.some(row => row.errors) && (
+                            <Card shadow="sm" mb="md" p="sm" style={{backgroundColor: "#fff4f4"}}>
+                                <Text fw={500} size="lg" styles={{
+                                        root: {
+                                            color: "var(--mantine-color-red-6)"
+                                        }
+                                    }}
+                                >
+                                    Formularz zawiera błędy. Popraw je przed zapisem.
+                                </Text>
+                                <ul>
+                                    {rows.map((row, index) => (
+                                        row.errors && (
+                                            <li key={row.id}>
+                                                <Text span fw={500}>{alphabet[index]}: </Text>
+                                                {row.errors.predecessor && <Text span>{row.errors.predecessor}</Text>}
+                                                {row.errors.duration && <Text span>{row.errors.duration}</Text>}
+                                            </li>
+                                        )
+                                    ))}
+                                </ul>
+                            </Card>
+                        )}
+
+
                         <Table striped highlightOnHover>
                             <thead>
                             <tr>
@@ -403,6 +496,7 @@ export const CpmPreForm = () => {
                                             value={row.predecessor}
                                             onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
                                             placeholder="Poprzednia czynność (np. A,B lub -)"
+                                            error={row.errors?.predecessor}
                                         />
                                     </td>
                                     <td>
@@ -413,11 +507,15 @@ export const CpmPreForm = () => {
                                             step={1}
                                             hideControls
                                             placeholder="Czas"
+                                            error={row.errors?.duration}
                                         />
                                     </td>
                                     <td>
-                                        <Button color="red" onClick={() => removeRow(row.id)}
-                                                disabled={rows.length === 1}>
+                                        <Button
+                                            color="red"
+                                            onClick={() => removeRow(row.id)}
+                                            disabled={rows.length === 1}
+                                        >
                                             <IconTrash size={18}/>
                                         </Button>
                                     </td>
@@ -436,10 +534,20 @@ export const CpmPreForm = () => {
                             direction="row"
                             wrap="wrap"
                         >
-                            <Button onClick={addRow} leftSection={<IconPlus size={18}/>} mt="md">
+                            <Button
+                                onClick={addRow}
+                                leftSection={<IconPlus size={18}/>}
+                                mt="md"
+                            >
                                 Dodaj wiersz
                             </Button>
-                            <Button onClick={handleSave} leftSection={<IconDeviceFloppy size={18}/>} mt="md">
+                            <Button
+                                onClick={handleSave}
+                                leftSection={<IconDeviceFloppy size={18}/>}
+                                mt="md"
+                                disabled={rows.some(row => row.errors)}
+                                color={rows.some(row => row.errors) ? "gray" : "blue"}
+                            >
                                 Zapisz i rysuj wykres
                             </Button>
                         </Flex>
@@ -448,7 +556,12 @@ export const CpmPreForm = () => {
 
                         {criticalPath.length > 0 && (
                             <Card shadow="sm" mt="md" p="sm" style={{backgroundColor: "#e9f5ff"}}>
-                                <Text fw={500} size="lg" color="blue">
+                                <Text fw={500} size="lg" styles={{
+                                        root: {
+                                            color: "var(--mantine-color-blue-6)"
+                                        }
+                                    }}
+                                >
                                     Ścieżka krytyczna: {criticalPath.join(" → ")}
                                 </Text>
                             </Card>
