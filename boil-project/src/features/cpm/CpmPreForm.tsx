@@ -563,6 +563,13 @@ export const CpmPreForm = () => {
                                 >
                                     Ścieżka krytyczna: {criticalPath.join(" → ")}
                                 </Text>
+                                <Text fw={500} size="lg" styles={{
+                                    root: {
+                                        color: "var(--mantine-color-blue-6)"
+                                    }
+                                }}>
+                                    Długość ścieżki krytycznej: {graphData.nodes[graphData.nodes.length-1].t0}
+                                </Text>
                             </Card>
                         )}
                     </Container>

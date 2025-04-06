@@ -255,38 +255,6 @@ export const CpmPostForm = () => {
             node.L = node.t1 - node.t0;
         });
 
-        // Znajdź ścieżkę krytyczną
-        const criticalPath: string[] = []; // Tablica na etykiety połączeń ścieżki krytycznej
-        let currentNode = newGraphData.nodes[0]; // Zaczynamy od pierwszego węzła
-
-        while (currentNode) {
-            // Znajdź wszystkie połączenia wychodzące z bieżącego węzła
-            const outgoingLinks = newGraphData.links.filter(link => link.from === currentNode.key);
-
-            // Znajdź połączenie, które prowadzi do węzła z t0 = t1 i jest spójne z różnicą t0
-            const nextLink = outgoingLinks.find(link => {
-                const toNode = newGraphData.nodes.find(node => node.key === link.to);
-                return toNode && toNode.t0 === toNode.t1 && toNode.t0 === currentNode.t0 + link.duration;
-            });
-
-            if (nextLink) {
-                criticalPath.push(nextLink.label); // Dodaj etykietę połączenia do ścieżki krytycznej
-                currentNode = newGraphData.nodes.find(node => node.key === nextLink.to)!; // Przejdź do następnego węzła
-            } else {
-                break; // Zakończ, jeśli nie ma więcej węzłów na ścieżce krytycznej
-            }
-        }
-
-        setCriticalPath(criticalPath);
-
-        newGraphData.links.forEach(link => {
-            for(let i=0;i<criticalPath.length;i++) {
-                if(link.label===criticalPath[i]){
-                    link.color="red";
-                }
-            }
-        });
-
         newGraphData.nodes.slice(0, -1).forEach(node => {
             const outgoingLinks = newGraphData.links.filter(link => link.from === node.key);
 
@@ -302,6 +270,50 @@ export const CpmPostForm = () => {
                 newGraphData.links.push(newLink);
             }
         });
+
+        const criticalPath: string[] = []; // Tablica na etykiety połączeń ścieżki krytycznej
+        const allPaths: {path: string[], duration: number}[] = []; // Tablica na wszystkie ścieżki i ich czas trwania
+
+// Funkcja rekurencyjna do znajdowania wszystkich ścieżek
+        const findAllPaths = (currentNode: typeof newGraphData.nodes[0], currentPath: string[], currentDuration: number) => {
+            // Znajdź wszystkie połączenia wychodzące z bieżącego węzła
+            const outgoingLinks = newGraphData.links.filter(link => link.from === currentNode.key);
+
+            if (outgoingLinks.length === 0) {
+                // Jeśli nie ma więcej połączeń, dodaj ścieżkę do listy
+                allPaths.push({
+                    path: [...currentPath],
+                    duration: currentDuration
+                });
+            } else {
+                // Przejdź przez wszystkie możliwe połączenia
+                outgoingLinks.forEach(link => {
+                    const toNode = newGraphData.nodes.find(node => node.key === link.to);
+                    if (toNode) {
+                        findAllPaths(toNode, [...currentPath, link.label], currentDuration + link.duration);
+                    }
+                });
+            }
+        };
+
+// Rozpocznij od pierwszego węzła
+        findAllPaths(newGraphData.nodes[0], [], 0);
+
+// Znajdź ścieżkę o najdłuższym czasie trwania
+        if (allPaths.length > 0) {
+            const longestPath = allPaths.reduce((prev, current) =>
+                (prev.duration > current.duration) ? prev : current
+            );
+            criticalPath.push(...longestPath.path);
+        }
+
+        setCriticalPath(criticalPath);
+
+// Zaznacz ścieżkę krytyczną na grafie
+        newGraphData.links.forEach(link => {
+            link.color = criticalPath.includes(link.label) ? "red" : link.color;
+        });
+
         setGanttData(newGraphData);
         setGraphData(newGraphData);
     };
@@ -472,6 +484,13 @@ export const CpmPostForm = () => {
                                     }
                                 }}>
                                     Ścieżka krytyczna: {criticalPath.join(" → ")}
+                                </Text>
+                                <Text fw={500} size="lg" styles={{
+                                    root: {
+                                        color: "var(--mantine-color-blue-6)"
+                                    }
+                                }}>
+                                    Długość ścieżki krytycznej: {graphData.nodes[graphData.nodes.length-1].t0}
                                 </Text>
                             </Card>
                         )}
