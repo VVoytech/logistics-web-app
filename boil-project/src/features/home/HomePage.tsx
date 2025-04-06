@@ -110,7 +110,7 @@ export const HomePage = () => {
                         <Card shadow="sm" padding="lg" radius="md" withBorder>
                             <Card.Section>
                                 <Image
-                                    src="https://i.imgflip.com/9nrich.jpg"
+                                    src="https://omec.pl/wp-content/uploads/Zrzut-ekranu-2015-11-16-o-12.22.29.png"
                                     height={500}
                                     alt="CPM diagram"
                                 />

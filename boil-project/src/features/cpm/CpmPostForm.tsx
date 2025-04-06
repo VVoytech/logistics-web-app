@@ -28,6 +28,10 @@ interface Row {
     id: number;
     predecessor: string;
     duration: number;
+    errors?: {
+        predecessor?: string;
+        duration?: string;
+    };
 }
 
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""); // Lista czynności
@@ -76,6 +80,37 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
     return { nodes, links };
 };
 
+// Funkcja walidująca pojedynczy wiersz
+const validateRow = (row: Row): Row => {
+    const errors: { predecessor?: string; duration?: string } = {};
+
+    if (row.duration <= 0) {
+        errors.duration = "Czas trwania musi być większy od 0";
+    }
+
+    if (row.predecessor.trim() === "") {
+        errors.predecessor = "Podaj następstwo zdarzeń w formacie 'X-Y'";
+    } else {
+        const parts = row.predecessor.split('-');
+        if (parts.length !== 2) {
+            errors.predecessor = "Nieprawidłowy format. Wprowadź w formacie 'X-Y'";
+        } else {
+            const [from, to] = parts;
+            if (isNaN(Number(from)) || isNaN(Number(to))) {
+                errors.predecessor = "Oba elementy muszą być liczbami";
+            } else if (Number(from) >= Number(to)) {
+                errors.predecessor = "Pierwsza liczba musi być mniejsza od drugiej";
+            }
+        }
+    }
+
+    return { ...row, errors: Object.keys(errors).length > 0 ? errors : undefined };
+};
+
+// Funkcja walidująca wszystkie wiersze
+const validateAllRows = (rows: Row[]): Row[] => {
+    return rows.map((row) => validateRow(row));
+};
 
 export const CpmPostForm = () => {
     const [graphData, setGraphData] = useState<{
@@ -98,19 +133,22 @@ export const CpmPostForm = () => {
 
     // Funkcja dodająca nowy wiersz
     const addRow = () => {
-        setRows([...rows, { id: rows.length + 1, predecessor: "", duration: 0 }]);
+        const newRows = [...rows, { id: rows.length + 1, predecessor: "", duration: 0 }];
+        setRows(newRows);
     };
 
     // Funkcja usuwająca wiersz
     const removeRow = (id: number) => {
-        setRows(rows.filter((row) => row.id !== id));
+        const newRows = rows.filter((row) => row.id !== id);
+        setRows(newRows);
     };
 
     // Funkcja aktualizująca wartość pola w wierszu
     const updateRow = (id: number, field: keyof Row, value: string | number | null) => {
-        setRows(rows.map((row) =>
+        const newRows = rows.map((row) =>
             row.id === id ? { ...row, [field]: value ?? 0 } : row
-        ));
+        );
+        setRows(validateAllRows(newRows));
     };
 
     const handleHome = () => {
@@ -138,26 +176,34 @@ export const CpmPostForm = () => {
                 duration: row.duration || 0
             }));
 
-            setRows(newRows);
+            setRows(validateAllRows(newRows));
         };
         reader.readAsArrayBuffer(file);
     };
 
-
-
     const handleSave = () => {
-        const newGraphData = processDataForGoJS(rows);
+        const validatedRows = validateAllRows(rows);
+
+        const hasErrors = validatedRows.some(row => row.errors);
+
+        if (hasErrors) {
+            setRows(validatedRows);
+            alert("Popraw błędy w formularzu przed zapisem");
+            return;
+        }
+
+        const newGraphData = processDataForGoJS(validatedRows);
 
         // Inicjalizacja t1 dla wszystkich węzłów
         newGraphData.nodes.forEach(node => {
             node.t1 = Infinity; // Ustawiamy t1 na nieskończoność, aby później znaleźć minimum
         });
 
-// Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
+        // Ustawienie t1 dla ostatniego węzła (zdarzenia końcowego)
         const lastNode = newGraphData.nodes[newGraphData.nodes.length - 1];
         lastNode.t1 = lastNode.t0; // t1 ostatniego węzła jest równe jego t0
 
-// Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
+        // Przejście przez węzły od końca i aktualizacja t1 dla poprzedników
         for (let i = newGraphData.nodes.length - 1; i >= 0; i--) {
             const currentNode = newGraphData.nodes[i];
 
@@ -197,14 +243,14 @@ export const CpmPostForm = () => {
             });
         }
 
-// Ustawienie t1 na t0, jeśli t1 nie zostało zaktualizowane
+        // Ustawienie t1 na t0, jeśli t1 nie zostało zaktualizowane
         newGraphData.nodes.forEach(node => {
             if (node.t1 === Infinity) {
                 node.t1 = node.t0; // Jeśli t1 nie zostało zaktualizowane, ustaw je na t0
             }
         });
 
-// Obliczenie L (luzy) dla każdego węzła
+        // Obliczenie L (luzy) dla każdego węzła
         newGraphData.nodes.forEach(node => {
             node.L = node.t1 - node.t0;
         });
@@ -234,7 +280,6 @@ export const CpmPostForm = () => {
         setCriticalPath(criticalPath);
 
         newGraphData.links.forEach(link => {
-
             for(let i=0;i<criticalPath.length;i++) {
                 if(link.label===criticalPath[i]){
                     link.color="red";
@@ -246,28 +291,23 @@ export const CpmPostForm = () => {
             const outgoingLinks = newGraphData.links.filter(link => link.from === node.key);
 
             if (outgoingLinks.length === 0) {
-
-                    // Dodaj nowe połączenie
-                    const newLink = {
-                        from: node.key,
-                        to: node.key+1,
-                        label: "p",
-                        duration: 0,
-                        color: "gray"
-                    };
-                    newGraphData.links.push(newLink);
-                }
+                // Dodaj nowe połączenie
+                const newLink = {
+                    from: node.key,
+                    to: node.key+1,
+                    label: "p",
+                    duration: 0,
+                    color: "gray"
+                };
+                newGraphData.links.push(newLink);
+            }
         });
         setGanttData(newGraphData);
-        console.log(newGraphData);
         setGraphData(newGraphData);
     };
 
-
     return (
-
         <div style={{display: "flex", flexDirection: "column", gap: "2vw", padding: "2vw"}}>
-
             <div style={{display: "flex", gap: "2vw", width: "100%"}}>
                 <Card
                     shadow="md"
@@ -281,9 +321,7 @@ export const CpmPostForm = () => {
                         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
                     }}
                 >
-
                     <Container>
-
                         <Menu shadow="md" width={200}>
                             <Menu.Target>
                                 <Button leftSection={<IconCategory2 />}>MENU</Button>
@@ -318,7 +356,7 @@ export const CpmPostForm = () => {
                             leftSection={<IconUpload size={18} />}
                             mb="md"
                         />
-                        {/* Dodajemy selektor do wyboru jednostki czasu */}
+
                         <Select
                             label="Jednostka czasu"
                             value={timeUnit}
@@ -332,6 +370,30 @@ export const CpmPostForm = () => {
                         />
 
                         <Divider my="md" />
+
+                        {rows.some(row => row.errors) && (
+                            <Card shadow="sm" mb="md" p="sm" style={{backgroundColor: "#fff4f4"}}>
+                                <Text fw={500} size="lg" styles={{
+                                    root: {
+                                        color: "var(--mantine-color-red-6)"
+                                    }
+                                }}
+                                >
+                                    Formularz zawiera błędy. Popraw je przed zapisem.
+                                </Text>
+                                <ul>
+                                    {rows.map((row, index) => (
+                                        row.errors && (
+                                            <li key={row.id}>
+                                                <Text span fw={500}>{alphabet[index]}: </Text>
+                                                {row.errors.predecessor && <Text span>{row.errors.predecessor}</Text>}
+                                                {row.errors.duration && <Text span>{row.errors.duration}</Text>}
+                                            </li>
+                                        )
+                                    ))}
+                                </ul>
+                            </Card>
+                        )}
 
                         <Table striped highlightOnHover>
                             <thead>
@@ -350,7 +412,8 @@ export const CpmPostForm = () => {
                                         <TextInput
                                             value={row.predecessor}
                                             onChange={(e) => updateRow(row.id, "predecessor", e.target.value)}
-                                            placeholder="Poprzednia czynność"
+                                            placeholder="Następstwo (np. 1-2)"
+                                            error={row.errors?.predecessor}
                                         />
                                     </td>
                                     <td>
@@ -361,6 +424,7 @@ export const CpmPostForm = () => {
                                             step={1}
                                             hideControls
                                             placeholder="Czas"
+                                            error={row.errors?.duration}
                                         />
                                     </td>
                                     <td>
@@ -387,7 +451,13 @@ export const CpmPostForm = () => {
                             <Button onClick={addRow} leftSection={<IconPlus size={18}/>} mt="md">
                                 Dodaj wiersz
                             </Button>
-                            <Button onClick={handleSave} leftSection={<IconDeviceFloppy size={18}/>} mt="md">
+                            <Button
+                                onClick={handleSave}
+                                leftSection={<IconDeviceFloppy size={18}/>}
+                                mt="md"
+                                disabled={rows.some(row => row.errors)}
+                                color={rows.some(row => row.errors) ? "gray" : "blue"}
+                            >
                                 Zapisz i rysuj wykres
                             </Button>
                         </Flex>
@@ -396,7 +466,11 @@ export const CpmPostForm = () => {
 
                         {criticalPath.length > 0 && (
                             <Card shadow="sm" mt="md" p="sm" style={{backgroundColor: "#e9f5ff"}}>
-                                <Text fw={500} size="lg" color="blue">
+                                <Text fw={500} size="lg" styles={{
+                                    root: {
+                                        color: "var(--mantine-color-blue-6)"
+                                    }
+                                }}>
                                     Ścieżka krytyczna: {criticalPath.join(" → ")}
                                 </Text>
                             </Card>
@@ -435,7 +509,6 @@ export const CpmPostForm = () => {
                     </div>
                 </Card>
 
-
                 <Card
                     shadow="md"
                     style={{
@@ -453,7 +526,6 @@ export const CpmPostForm = () => {
                     <GraphComponent data={graphData}/>
                 </Card>
             </div>
-
 
             <Card
                 shadow="md"

@@ -161,7 +161,6 @@ export const CpmPreForm = () => {
         } else {
             const predecessors = row.predecessor.split(',').map(p => p.trim());
 
-            // Usuwamy sprawdzanie czy '-' jest łączony z innymi wartościami
             predecessors.forEach(p => {
                 if (p !== '-' && !alphabet.includes(p)) {
                     errors.predecessor = `Poprzednik "${p}" jest nieprawidłowy`;
