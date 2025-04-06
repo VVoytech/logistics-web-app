@@ -91,8 +91,8 @@ export const HomePage = () => {
                             </Card.Section>
 
                             <Group justify="space-between" mt="md" mb="xs">
-                                <Text fw={500}>Metoda CPM z podawaniem poprzednika</Text>
-                                <Badge color="pink">Work in progress</Badge>
+                                <Text fw={500}>Metoda CPM z podawaniem poprzedniej czynności</Text>
+                                <Badge color="pink">Activity on node</Badge>
                             </Group>
 
                             <Text size="sm" c="dimmed">
@@ -117,8 +117,8 @@ export const HomePage = () => {
                             </Card.Section>
 
                             <Group justify="space-between" mt="md" mb="xs">
-                                <Text fw={500}>Metoda CPM z podawaniem następnej czynności</Text>
-                                <Badge color="pink">Work in progress</Badge>
+                                <Text fw={500}>Metoda CPM z podawaniem następstwa zdarzeń</Text>
+                                <Badge color="pink">Activity on the arrow</Badge>
                             </Group>
 
                             <Text size="sm" c="dimmed">
