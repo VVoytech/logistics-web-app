@@ -28,6 +28,10 @@ export const HomePage = () => {
         navigate("/cpmpost");
     };
 
+    const handleIntermediary = () => {
+        navigate("/intermediary");
+    }
+
     const [opened, { toggle }] = useDisclosure();
     const theme = useMantineTheme();
 
@@ -68,7 +72,7 @@ export const HomePage = () => {
                             <Menu.Item onClick={handleSubmit2}>Następujące</Menu.Item>
                         </Menu.Dropdown>
                     </Menu>
-                    <Button fullWidth>Zagadnienie pośrednika</Button>
+                    <Button fullWidth onClick={handleIntermediary}>Zagadnienie pośrednika</Button>
                 </Stack>
             </AppShell.Navbar>
 
@@ -125,6 +129,32 @@ export const HomePage = () => {
                                 W tej wersji określasz, które zadania mogą rozpocząć się dopiero po zakończeniu bieżącego zadania. Dla każdego zadania podajesz jego następników (zadania, które zależą od jego ukończenia). Ta metoda również pozwala na wyznaczenie ścieżki krytycznej, ale skupia się na zależnościach w przód, a nie wstecz.                            </Text>
 
                             <Button color="blue" fullWidth mt="md" radius="md" onClick={handleSubmit2}>
+                                Przetestuj
+                            </Button>
+                        </Card>
+                    </Grid.Col>
+
+                    {/* Trzecia karta */}
+                    <Grid.Col span={{ base: 12, md: 6 }}>
+                        <Card shadow="sm" padding="lg" radius="md" withBorder>
+                            <Card.Section>
+                                <Image
+                                    src="/intemediary_table.png"
+                                    height={500}
+                                    alt="CPM diagram"
+                                />
+                            </Card.Section>
+
+                            <Group justify="space-between" mt="md" mb="xs">
+                                <Text fw={500}>Metoda pośrednika</Text>
+                                <Badge color="pink">Work in progress</Badge>
+                            </Group>
+
+                            <Text size="sm" c="dimmed">
+                                Znalezienie optymalnego planu zakupu, transportu i sprzedaży towaru, który maksymalizuje zysk.
+                            </Text>
+
+                            <Button color="blue" fullWidth mt="md" radius="md" onClick={handleIntermediary}>
                                 Przetestuj
                             </Button>
                         </Card>
