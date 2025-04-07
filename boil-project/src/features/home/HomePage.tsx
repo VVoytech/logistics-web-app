@@ -133,6 +133,32 @@ export const HomePage = () => {
                             </Button>
                         </Card>
                     </Grid.Col>
+
+                    {/* Trzecia karta */}
+                    <Grid.Col span={{ base: 12, md: 6 }}>
+                        <Card shadow="sm" padding="lg" radius="md" withBorder>
+                            <Card.Section>
+                                <Image
+                                    src="/intemediary_table.png"
+                                    height={500}
+                                    alt="CPM diagram"
+                                />
+                            </Card.Section>
+
+                            <Group justify="space-between" mt="md" mb="xs">
+                                <Text fw={500}>Metoda pośrednika</Text>
+                                <Badge color="pink">Work in progress</Badge>
+                            </Group>
+
+                            <Text size="sm" c="dimmed">
+                                Znalezienie optymalnego planu zakupu, transportu i sprzedaży towaru, który maksymalizuje zysk.
+                            </Text>
+
+                            <Button color="blue" fullWidth mt="md" radius="md" onClick={handleIntermediary}>
+                                Przetestuj
+                            </Button>
+                        </Card>
+                    </Grid.Col>
                 </Grid>
             </AppShell.Main>
         </AppShell>
