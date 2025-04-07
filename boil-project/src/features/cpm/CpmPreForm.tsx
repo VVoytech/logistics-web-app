@@ -67,10 +67,8 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
             t0Map.set(activity, 0);
         }
 
-        // Zmieniamy logikę tutaj - usuwamy wyłączność przypadku '-'
         predecessors.forEach((predecessor) => {
             if (predecessor === '-') {
-                // Łączymy z węzłem START
                 links.push({
                     from: 1,
                     to: activity,
@@ -81,7 +79,6 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
                 const newT0 = (t0Map.get(1) || 0) + row.duration;
                 t0Map.set(activity, Math.max(t0Map.get(activity) || 0, newT0));
             } else {
-                // Łączymy z normalnym poprzednikiem
                 const predecessorKey = alphabet.indexOf(predecessor) + 2;
 
                 if (!usedKeys.has(predecessorKey)) {
@@ -104,7 +101,6 @@ const processDataForGoJS = (rows: { predecessor: string; duration: number }[]) =
         });
     });
 
-    // Reszta funkcji pozostaje bez zmian
     const endNodeKey = rows.length + 2;
     nodes.push({ key: endNodeKey, t0: 0, t1: 0, L: 0, label: 'KONIEC' });
 
@@ -193,7 +189,6 @@ export const CpmPreForm = () => {
                 return true;
             }
 
-            // Sprawdź rekurencyjnie
             if (hasCircularDependency(predRow, allRows, predIndex)) {
                 return true;
             }
@@ -269,10 +264,8 @@ export const CpmPreForm = () => {
             return;
         }
 
-        // Kontynuuj przetwarzanie danych jeśli nie ma błędów
         const newGraphData = processDataForGoJS(validatedRows);
 
-        // Inicjalizacja t1 dla wszystkich węzłów
         newGraphData.nodes.forEach(node => {
             node.t1 = Infinity; // Ustawiamy t1 na nieskończoność, aby później znaleźć minimum
         });
@@ -315,10 +308,8 @@ export const CpmPreForm = () => {
         let currentNode = newGraphData.nodes[0]; // Zaczynamy od pierwszego węzła
 
         while (currentNode) {
-            // Znajdź wszystkie połączenia wychodzące z bieżącego węzła
             const outgoingLinks = newGraphData.links.filter(link => link.from === currentNode.key);
 
-            // Znajdź połączenie, które prowadzi do węzła z t0 = t1 i jest spójne z różnicą t0
             const nextLink = outgoingLinks.find(link => {
                 const toNode = newGraphData.nodes.find(node => node.key === link.to);
                 return toNode && toNode.t0 === toNode.t1 && toNode.t0 === currentNode.t0 + link.duration;
@@ -338,21 +329,19 @@ export const CpmPreForm = () => {
         }
 
         setCriticalPath(criticalPath);
-        // Resetowanie kolorów wszystkich połączeń do domyślnego (czarnego)
         newGraphData.links.forEach(link => {
             link.color = "black"; // Resetuj kolor do domyślnego
         });
 
         // Oznaczanie tylko połączeń na ścieżce krytycznej na czerwono
         newGraphData.links.forEach(link => {
-            // Przejdź przez tablicę criticalPath i sprawdź, czy link.from i link.to są kolejnymi elementami
             for (let i = 0; i < criticalPath.length - 1; i++) {
                 const fromNode = criticalPath[i]; // Aktualny węzeł
                 const toNode = criticalPath[i + 1]; // Następny węzeł
 
                 // Sprawdź, czy link.from i link.to pasują do kolejnych węzłów w criticalPath
                 if (link.label===`${fromNode}-${toNode}`) {
-                    link.color = "red"; // Oznacz połączenie jako część ścieżki krytycznej
+                    link.color = "red";
                 }
             }
         });
@@ -362,13 +351,12 @@ export const CpmPreForm = () => {
             const outgoingLinks = newGraphData.links.filter(link => link.from === node.key);
 
             if (outgoingLinks.length === 0) {
-                // Dodaj nowe połączenie
                 const newLink = {
                     from: node.key,
                     to: newGraphData.nodes[newGraphData.nodes.length - 1].key,
                     label: '',
                     duration: 0,
-                    color: "gray" // Kolor dla automatycznego połączenia
+                    color: "gray"
                 };
                 newGraphData.links.push(newLink);
             }
