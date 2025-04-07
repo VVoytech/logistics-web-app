@@ -28,6 +28,10 @@ export const HomePage = () => {
         navigate("/cpmpost");
     };
 
+    const handleIntermediary = () => {
+        navigate("/intermediary");
+    }
+
     const [opened, { toggle }] = useDisclosure();
     const theme = useMantineTheme();
 
@@ -68,7 +72,7 @@ export const HomePage = () => {
                             <Menu.Item onClick={handleSubmit2}>Następujące</Menu.Item>
                         </Menu.Dropdown>
                     </Menu>
-                    <Button fullWidth>Zagadnienie pośrednika</Button>
+                    <Button fullWidth onClick={handleIntermediary}>Zagadnienie pośrednika</Button>
                 </Stack>
             </AppShell.Navbar>
 

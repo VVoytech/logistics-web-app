@@ -229,6 +229,10 @@ export const CpmPreForm = () => {
         navigate("/cpmpost");
     };
 
+    const handleIntermediary = () => {
+        navigate("/intermediary");
+    }
+
     const handleFileUpload = (file: File | null) => {
         if (!file) return;
 
@@ -410,7 +414,10 @@ export const CpmPreForm = () => {
                                 >
                                     CPM następnik
                                 </Menu.Item>
-                                <Menu.Item leftSection={<IconTruck size={18} />}>
+                                <Menu.Item
+                                    leftSection={<IconTruck size={18} />}
+                                    onClick={handleIntermediary}
+                                >
                                     Zagadnienie pośrednika
                                 </Menu.Item>
                             </Menu.Dropdown>
