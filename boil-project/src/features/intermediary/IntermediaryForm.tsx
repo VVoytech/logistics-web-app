@@ -2,7 +2,6 @@ import {
     Button,
     Card,
     Container,
-    Divider,
     Menu,
     Table,
     TextInput,
@@ -10,6 +9,9 @@ import {
     Group,
     Title,
     NumberInput,
+    Paper,
+    Text,
+    SimpleGrid,
 } from "@mantine/core";
 import {
     IconCategory2,
@@ -47,6 +49,16 @@ interface TransportSolution {
     supply: number[];
     demand: number[];
 }
+
+interface SolutionResults {
+    totalProfit?: number;
+    transportCosts?: number;
+    purchaseCosts?: number;
+    income?: number;
+    unitProfitMatrix?: number[][];
+    allocation?: number[][];
+}
+
 export const IntermediaryForm = () => {
     const navigate = useNavigate();
 
@@ -57,7 +69,7 @@ export const IntermediaryForm = () => {
                 id: 1,
                 name: "Dostawca 1",
                 supply: 0,
-                purchasePrice: 7,
+                purchasePrice: 0,
                 transportCosts: {
                     "Odbiorca 1": 0,
                     "Odbiorca 2": 0
@@ -87,6 +99,8 @@ export const IntermediaryForm = () => {
             }
         ]
     });
+
+    const [results, setResults] = useState<SolutionResults>({});
 
     const handleHome = () => navigate("/");
     const handlePost = () => navigate("/cpmpost");
@@ -198,7 +212,6 @@ export const IntermediaryForm = () => {
         });
     };
 
-
     const solveTransportProblem = () => {
         const result = proccesDataForCalculating(data);
         const unitProfitMatrix = unitProfitCalculator(result.transportCostsMatrix, result.purchaseCosts, result.sellingPrices);
@@ -231,9 +244,7 @@ export const IntermediaryForm = () => {
         let isOptimal = false;
 
         while (iteration <= 10 && !isOptimal) {
-
             const { alpha, beta } = calculateDualVariables(currentSolution);
-
             isOptimal = checkOptimality(currentSolution, alpha, beta);
 
             if (!isOptimal) {
@@ -243,13 +254,22 @@ export const IntermediaryForm = () => {
                 break;
             }
         }
+
+        const newResults: SolutionResults = {
+            totalProfit: calculateTotalProfit(unitProfitMatrix, currentSolution.allocation),
+            transportCosts: calculateTransportCosts(result.transportCostsMatrix, currentSolution.allocation, unitProfitMatrix),
+            purchaseCosts: calculatePurchaseCosts(result.purchaseCosts, currentSolution.allocation, unitProfitMatrix),
+            income: calculateIncome(result.sellingPrices, currentSolution.allocation, unitProfitMatrix),
+            allocation: currentSolution.allocation,
+            unitProfitMatrix: unitProfitMatrix
+        };
+
         console.log(unitProfitMatrix);
         console.log(currentSolution.allocation);
-        calculateTotalProfit(unitProfitMatrix, currentSolution.allocation);
-        calculateTransportCosts(result.transportCostsMatrix, currentSolution.allocation, unitProfitMatrix);
-        calculatePurchaseCosts(result.purchaseCosts, currentSolution.allocation, unitProfitMatrix);
-        calculateIncome(result.sellingPrices, currentSolution.allocation, unitProfitMatrix);
+
+        setResults(newResults);
     };
+
     const optimizeSolution = (solution: TransportSolution, alpha: number[], beta: number[]) => {
         const { allocation, profits } = solution;
         const numSuppliers = allocation.length;
@@ -277,13 +297,11 @@ export const IntermediaryForm = () => {
             return solution;
         }
 
-
         // 2. Znajdź pętlę dla wybranej zmiennej
         const loop = findLoop(allocation, enteringRow, enteringCol);
         if (!loop) {
             return solution;
         }
-
 
         // 3. Przeprowadź realokację
         const newAllocation = reallocateAlongLoop(allocation, loop);
@@ -297,12 +315,11 @@ export const IntermediaryForm = () => {
         return newSolution;
     };
 
-// Funkcja pomocnicza do znajdowania pętli
+    // Funkcja pomocnicza do znajdowania pętli
     const findLoop = (allocation: number[][], startRow: number, startCol: number) => {
         const numRows = allocation.length;
         const numCols = allocation[0].length;
         const loop = [{ row: startRow, col: startCol }];
-
 
         // Przykład uproszczony - szukamy wiersza i kolumny z komórkami bazowymi
         for (let i = 0; i < numRows; i++) {
@@ -323,7 +340,7 @@ export const IntermediaryForm = () => {
         return null;
     };
 
-// Funkcja pomocnicza do realokacji wzdłuż pętli
+    // Funkcja pomocnicza do realokacji wzdłuż pętli
     const reallocateAlongLoop = (allocation: number[][], loop: {row: number, col: number}[]) => {
         const newAllocation = allocation.map(row => [...row]);
 
@@ -333,7 +350,6 @@ export const IntermediaryForm = () => {
             const { row, col } = loop[i];
             minAmount = Math.min(minAmount, newAllocation[row][col]);
         }
-
 
         // Przeprowadź realokację
         for (let i = 0; i < loop.length; i++) {
@@ -347,7 +363,6 @@ export const IntermediaryForm = () => {
 
         return newAllocation;
     };
-
 
     const checkOptimality = (solution: TransportSolution, alpha: number[], beta: number[]) => {
         let isOptimal = true;
@@ -365,50 +380,55 @@ export const IntermediaryForm = () => {
 
         return isOptimal;
     };
-    const calculateTotalProfit=(unitProfitMatrix:number[][],allocation:number[][] )=> {
+
+    const calculateTotalProfit = (unitProfitMatrix: number[][], allocation: number[][]) => {
         let totalProfit = 0;
         for (let i = 0; i < unitProfitMatrix.length; i++) {
-            for (let j = 0; j < unitProfitMatrix.length; j++) {
-                if(unitProfitMatrix[i][j]!==0) {
-                    totalProfit+=unitProfitMatrix[i][j]*allocation[i][j];
+            for (let j = 0; j < unitProfitMatrix[i].length; j++) {
+                if (unitProfitMatrix[i][j] !== 0) {
+                    totalProfit += unitProfitMatrix[i][j] * allocation[i][j];
                 }
             }
         }
-        console.log("Zysk: "+totalProfit);
-    }
-    const calculateTransportCosts =(transportCostsMatrix:number[][],allocation:number[][],unitProfitMatrix:number[][])=>{
-       let totalTransportCosts =0;
+        return totalProfit;
+    };
+
+    const calculateTransportCosts = (transportCostsMatrix: number[][], allocation: number[][], unitProfitMatrix: number[][]) => {
+        let totalTransportCosts = 0;
         for (let i = 0; i < unitProfitMatrix.length; i++) {
-            for (let j = 0; j < unitProfitMatrix.length; j++) {
-                if(unitProfitMatrix[i][j]!==0) {
-                    totalTransportCosts+=allocation[i][j]*transportCostsMatrix[i][j];
+            for (let j = 0; j < unitProfitMatrix[i].length; j++) {
+                if (unitProfitMatrix[i][j] !== 0) {
+                    totalTransportCosts += allocation[i][j] * transportCostsMatrix[i][j];
                 }
             }
         }
-        console.log("Koszty transportu: "+totalTransportCosts);
-    }
-    const calculatePurchaseCosts =(purchaseCosts:number[],allocation:number[][],unitProfitMatrix:number[][])=> {
-        let totalPurchaseCosts =0;
+        return totalTransportCosts;
+    };
+
+    const calculatePurchaseCosts = (purchaseCosts: number[], allocation: number[][], unitProfitMatrix: number[][]) => {
+        let totalPurchaseCosts = 0;
         for (let i = 0; i < unitProfitMatrix.length; i++) {
-            for (let j = 0; j < unitProfitMatrix.length; j++) {
-                if(unitProfitMatrix[i][j]!==0) {
-                    totalPurchaseCosts+=allocation[i][j]*purchaseCosts[i];
+            for (let j = 0; j < unitProfitMatrix[i].length; j++) {
+                if (unitProfitMatrix[i][j] !== 0) {
+                    totalPurchaseCosts += allocation[i][j] * purchaseCosts[i];
                 }
             }
         }
-        console.log("Koszty zakupu: "+totalPurchaseCosts);
-    }
-    const calculateIncome =(sellingPrices:number[],allocation:number[][],unitProfitMatrix:number[][])=> {
-        let income =0;
+        return totalPurchaseCosts;
+    };
+
+    const calculateIncome = (sellingPrices: number[], allocation: number[][], unitProfitMatrix: number[][]) => {
+        let income = 0;
         for (let i = 0; i < unitProfitMatrix.length; i++) {
-            for (let j = 0; j < unitProfitMatrix.length; j++) {
-                if(unitProfitMatrix[i][j]!==0) {
-                    income+=allocation[i][j]*sellingPrices[j];
+            for (let j = 0; j < unitProfitMatrix[i].length; j++) {
+                if (unitProfitMatrix[i][j] !== 0) {
+                    income += allocation[i][j] * sellingPrices[j];
                 }
             }
         }
-        console.log("Income: "+income);
-    }
+        return income;
+    };
+
     const calculateDualVariables = (solution: TransportSolution) => {
         const { allocation, profits } = solution;
         const numSuppliers = allocation.length;
@@ -442,6 +462,7 @@ export const IntermediaryForm = () => {
 
         return { alpha, beta };
     };
+
     const calculatePotentialPath = (unitProfitMatrix: number[][], supply: number[], demand: number[]) => {
         const remainingSupply = [...supply];
         const remainingDemand = [...demand];
@@ -477,25 +498,26 @@ export const IntermediaryForm = () => {
         }
 
         return allocation;
-    }
-    const unitProfitCalculator = (transportCostsMatrix: number[][], purchaseCosts: number[], sellingPrices:number[]  ) => {
+    };
+
+    const unitProfitCalculator = (transportCostsMatrix: number[][], purchaseCosts: number[], sellingPrices: number[]) => {
         const unitProfitMatrix: number[][] = transportCostsMatrix.map(row =>
             new Array(row.length).fill(0)
         );
         for (let i = 0; i < transportCostsMatrix.length; i++) {
             for (let j = 0; j < transportCostsMatrix[i].length; j++) {
-                unitProfitMatrix[i][j] = sellingPrices[j]-purchaseCosts[i]-transportCostsMatrix[i][j];
+                unitProfitMatrix[i][j] = sellingPrices[j] - purchaseCosts[i] - transportCostsMatrix[i][j];
             }
         }
         return unitProfitMatrix;
+    };
 
-    }
-    const proccesDataForCalculating =(data:TransportProblemData)=>{
+    const proccesDataForCalculating = (data: TransportProblemData) => {
         const transportCostsMatrix: number[][] = [];
 
         data.suppliers.forEach((supplier) => {
             const row = data.customers.map(customer => {
-                const customerKey =  customer.name;
+                const customerKey = customer.name;
                 return supplier.transportCosts[customerKey];
             });
 
@@ -503,13 +525,9 @@ export const IntermediaryForm = () => {
         });
 
         const supplyArray = data.suppliers.map(supplier => supplier.supply);
-
         const demandArray = data.customers.map(customer => customer.demand);
-
         const purchaseCostsArray = data.suppliers.map(supplier => supplier.purchasePrice);
-
         const sellingPricesArray = data.customers.map(customer => customer.sellingPrice || 0);
-
 
         return {
             supply: supplyArray,
@@ -518,42 +536,32 @@ export const IntermediaryForm = () => {
             sellingPrices: sellingPricesArray,
             transportCostsMatrix: transportCostsMatrix,
         };
-    }
+    };
+
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "2vw", padding: "2vw" }}>
-            <div style={{ display: "flex", gap: "2vw", width: "100%" }}>
-                <Card
-                    shadow="md"
-                    style={{
-                        width: "60vw",
-                        height: "80vh",
-                        overflowY: "auto",
-                        padding: "20px",
-                        borderRadius: "12px",
-                        backgroundColor: "#f9f9f9",
-                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                    }}
-                >
-                    <Container>
-                        <Menu shadow="md" width={200}>
-                            <Menu.Target>
-                                <Button leftSection={<IconCategory2 />}>MENU</Button>
-                            </Menu.Target>
-                            <Menu.Dropdown>
-                                <Menu.Item leftSection={<IconHome size={18} />} onClick={handleHome}>
-                                    Strona główna
-                                </Menu.Item>
-                                <Menu.Item leftSection={<IconSchema size={18} />} onClick={handlePost}>
-                                    CPM następnik
-                                </Menu.Item>
-                                <Menu.Item leftSection={<IconSchema size={18} />} onClick={handlePre}>
-                                    CPM poprzednik
-                                </Menu.Item>
-                            </Menu.Dropdown>
-                        </Menu>
+        <Container fluid p="md">
+            <Group align="flex-start" gap="md">
+                {/* Menu po lewej stronie */}
+                <Menu shadow="md" width={200}>
+                    <Menu.Target>
+                        <Button leftSection={<IconCategory2 />}>MENU</Button>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                        <Menu.Item leftSection={<IconHome size={18} />} onClick={handleHome}>
+                            Strona główna
+                        </Menu.Item>
+                        <Menu.Item leftSection={<IconSchema size={18} />} onClick={handlePost}>
+                            CPM następnik
+                        </Menu.Item>
+                        <Menu.Item leftSection={<IconSchema size={18} />} onClick={handlePre}>
+                            CPM poprzednik
+                        </Menu.Item>
+                    </Menu.Dropdown>
+                </Menu>
 
-                        <Divider my="md" />
-
+                {/* Główna zawartość */}
+                <div style={{ flex: 1 }}>
+                    <Card shadow="md" p="lg" radius="md" withBorder>
                         <Title order={4} mb="md">Problem transportowy</Title>
 
                         <Group mb="md">
@@ -563,7 +571,12 @@ export const IntermediaryForm = () => {
                             <Button leftSection={<IconColumnInsertRight size={18} />} onClick={addCustomer} variant="outline">
                                 Dodaj odbiorcę
                             </Button>
-                            <Button leftSection={<IconDeviceFloppy size={18} />} onClick={solveTransportProblem} variant="filled" color="blue">
+                            <Button
+                                leftSection={<IconDeviceFloppy size={18} />}
+                                onClick={solveTransportProblem}
+                                variant="filled"
+                                color="blue"
+                            >
                                 Rozwiąż
                             </Button>
                         </Group>
@@ -648,14 +661,85 @@ export const IntermediaryForm = () => {
                                                 />
                                             </Table.Td>
                                         ))}
-
                                     </Table.Tr>
                                 ))}
                             </Table.Tbody>
                         </Table>
-                    </Container>
-                </Card>
-            </div>
-        </div>
+                    </Card>
+
+                    {/* Sekcja wyników */}
+                    {results.totalProfit !== undefined && (
+                        <Card shadow="md" p="lg" radius="md" withBorder mt="md">
+                            <Title order={4} mb="md">Wyniki</Title>
+                            <SimpleGrid cols={4}>
+                                <Paper p="md" shadow="xs">
+                                    <Text fw={500}>Całkowity zysk</Text>
+                                    <Text>{results.totalProfit.toFixed(2)} zł</Text>
+                                </Paper>
+                                <Paper p="md" shadow="xs">
+                                    <Text fw={500}>Koszty transportu</Text>
+                                    <Text>{results.transportCosts?.toFixed(2)} zł</Text>
+                                </Paper>
+                                <Paper p="md" shadow="xs">
+                                    <Text fw={500}>Koszty zakupu</Text>
+                                    <Text>{results.purchaseCosts?.toFixed(2)} zł</Text>
+                                </Paper>
+                                <Paper p="md" shadow="xs">
+                                    <Text fw={500}>Przychód</Text>
+                                    <Text>{results.income?.toFixed(2)} zł</Text>
+                                </Paper>
+                            </SimpleGrid>
+
+                            {/* Tabela alokacji (pomniejszona o ostatni wiersz i kolumnę) */}
+                            <Title order={5} mt="xl" mb="sm">Tabela alokacji</Title>
+                            <Table striped highlightOnHover withTableBorder withColumnBorders mb="xl">
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Dostawca \ Odbiorca</Table.Th>
+                                        {data.customers.map((customer, idx) => (
+                                            <Table.Th key={idx}>{customer.name}</Table.Th>
+                                        ))}
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {results.allocation?.slice(0, -1).map((row, i) => (
+                                        <Table.Tr key={i}>
+                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i+1}`}</Table.Td>
+                                            {row.slice(0, -1).map((cell, j) => (
+                                                <Table.Td key={j}>{cell}</Table.Td>
+                                            ))}
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+
+                            {/* Tabela zysków jednostkowych (pomniejszona o ostatni wiersz i kolumnę) */}
+                            <Title order={5} mt="xl" mb="sm">Tabela zysków jednostkowych</Title>
+                            <Table striped highlightOnHover withTableBorder withColumnBorders>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Dostawca \ Odbiorca</Table.Th>
+                                        {data.customers.map((customer, idx) => (
+                                            <Table.Th key={idx}>{customer.name}</Table.Th>
+                                        ))}
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {results.unitProfitMatrix?.slice(0, -1).map((row, i) => (
+                                        <Table.Tr key={i}>
+                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i+1}`}</Table.Td>
+                                            {row.slice(0, -1).map((cell, j) => (
+                                                <Table.Td key={j}>{cell.toFixed(2)}</Table.Td>
+                                            ))}
+                                        </Table.Tr>
+                                    ))}
+                                </Table.Tbody>
+                            </Table>
+
+                        </Card>
+                    )}
+                </div>
+            </Group>
+        </Container>
     );
 };
