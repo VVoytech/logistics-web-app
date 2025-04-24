@@ -863,7 +863,7 @@ export const IntermediaryForm = () => {
                             </SimpleGrid>
 
                             {/* Tabela alokacji (pomniejszona o ostatni wiersz i kolumnę) */}
-                            <Title order={5} mt="xl" mb="sm">Tabela alokacji</Title>
+                            <Title order={5} mt="xl" mb="sm">Optymalny plan przewozów</Title>
                             <Table striped highlightOnHover withTableBorder withColumnBorders mb="xl">
                                 <Table.Thead>
                                     <Table.Tr>
