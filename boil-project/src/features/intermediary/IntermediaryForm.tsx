@@ -12,8 +12,6 @@ import {
     Paper,
     Text,
     SimpleGrid,
-    Alert,
-    List,
 } from "@mantine/core";
 import {
     IconCategory2,
@@ -22,8 +20,7 @@ import {
     IconTrash,
     IconColumnInsertRight,
     IconRowInsertBottom,
-    IconDeviceFloppy,
-    IconAlertCircle
+    IconDeviceFloppy
 } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -32,11 +29,6 @@ interface CustomerData {
     name: string;
     demand: number;
     sellingPrice: number;
-    errors?: {
-        name?: string;
-        demand?: string;
-        sellingPrice?: string;
-    };
 }
 
 interface SupplierData {
@@ -45,22 +37,12 @@ interface SupplierData {
     supply: number;
     purchasePrice: number;
     transportCosts: Record<string, number>;
-    errors?: {
-        name?: string;
-        supply?: string;
-        purchasePrice?: string;
-        transportCosts?: Record<string, string>;
-    };
 }
 
 interface TransportProblemData {
     suppliers: SupplierData[];
     customers: CustomerData[];
-    errors?: {
-        balance?: string;
-    };
 }
-
 interface TransportSolution {
     allocation: number[][];
     profits: number[][];
@@ -124,89 +106,6 @@ export const IntermediaryForm = () => {
     const handlePost = () => navigate("/cpmpost");
     const handlePre = () => navigate("/cpmpre");
 
-    // Walidacja pojedynczego odbiorcy
-    const validateCustomer = (customer: CustomerData): CustomerData => {
-        const errors: {
-            name?: string;
-            demand?: string;
-            sellingPrice?: string;
-        } = {};
-
-        if (!customer.name.trim()) {
-            errors.name = "Nazwa odbiorcy jest wymagana";
-        }
-
-        if (customer.demand <= 0) {
-            errors.demand = "Popyt musi być większy od 0";
-        }
-
-        if (customer.sellingPrice < 0) {
-            errors.sellingPrice = "Cena sprzedaży nie może być ujemna";
-        }
-
-        return {
-            ...customer,
-            errors: Object.keys(errors).length > 0 ? errors : undefined
-        };
-    };
-
-    // Walidacja pojedynczego dostawcy
-    const validateSupplier = (supplier: SupplierData, customers: CustomerData[]): SupplierData => {
-        const errors: {
-            name?: string;
-            supply?: string;
-            purchasePrice?: string;
-            transportCosts?: Record<string, string>;
-        } = {};
-
-        if (!supplier.name.trim()) {
-            errors.name = "Nazwa dostawcy jest wymagana";
-        }
-
-        if (supplier.supply <= 0) {
-            errors.supply = "Podaż musi być większa od 0";
-        }
-
-        if (supplier.purchasePrice < 0) {
-            errors.purchasePrice = "Cena zakupu nie może być ujemna";
-        }
-
-        const transportErrors: Record<string, string> = {};
-        customers.forEach(customer => {
-            const cost = supplier.transportCosts[customer.name];
-            if (cost < 0) {
-                transportErrors[customer.name] = "Koszt transportu nie może być ujemny";
-            }
-        });
-
-        if (Object.keys(transportErrors).length > 0) {
-            errors.transportCosts = transportErrors;
-        }
-
-        return {
-            ...supplier,
-            errors: Object.keys(errors).length > 0 ? errors : undefined
-        };
-    };
-
-    // Walidacja całego modelu
-    const validateModel = (model: TransportProblemData): TransportProblemData => {
-        const validatedCustomers = model.customers.map(validateCustomer);
-        const validatedSuppliers = model.suppliers.map(supplier =>
-            validateSupplier(supplier, validatedCustomers)
-        );
-
-        const errors: {
-            balance?: string;
-        } = {};
-
-        return {
-            suppliers: validatedSuppliers,
-            customers: validatedCustomers,
-            errors: Object.keys(errors).length > 0 ? errors : undefined
-        };
-    };
-
     // Dodawanie nowego dostawcy
     const addSupplier = () => {
         const newId = Math.max(...data.suppliers.map(s => s.id), 0) + 1;
@@ -221,19 +120,19 @@ export const IntermediaryForm = () => {
             }, {} as Record<string, number>)
         };
 
-        setData(validateModel({
+        setData({
             ...data,
             suppliers: [...data.suppliers, newSupplier]
-        }));
+        });
     };
 
     // Usuwanie dostawcy
     const removeSupplier = (id: number) => {
         if (data.suppliers.length <= 1) return;
-        setData(validateModel({
+        setData({
             ...data,
             suppliers: data.suppliers.filter(s => s.id !== id)
-        }));
+        });
     };
 
     // Dodawanie nowego odbiorcy
@@ -244,7 +143,7 @@ export const IntermediaryForm = () => {
             sellingPrice: 0
         };
 
-        const newData = {
+        setData({
             customers: [...data.customers, newCustomer],
             suppliers: data.suppliers.map(supplier => ({
                 ...supplier,
@@ -253,16 +152,14 @@ export const IntermediaryForm = () => {
                     [newCustomer.name]: 0
                 }
             }))
-        };
-
-        setData(validateModel(newData));
+        });
     };
 
     // Usuwanie odbiorcy
     const removeCustomer = (name: string) => {
         if (data.customers.length <= 1) return;
 
-        const newData = {
+        setData({
             customers: data.customers.filter(c => c.name !== name),
             suppliers: data.suppliers.map(supplier => {
                 const newTransportCosts = { ...supplier.transportCosts };
@@ -272,20 +169,17 @@ export const IntermediaryForm = () => {
                     transportCosts: newTransportCosts
                 };
             })
-        };
-
-        setData(validateModel(newData));
+        });
     };
 
     // Aktualizacja danych dostawcy
     const updateSupplier = (id: number, field: keyof SupplierData, value: string | number) => {
-        const newData = {
+        setData({
             ...data,
             suppliers: data.suppliers.map(supplier =>
                 supplier.id === id ? { ...supplier, [field]: value } : supplier
             )
-        };
-        setData(validateModel(newData));
+        });
     };
 
     // Aktualizacja danych odbiorcy
@@ -293,16 +187,15 @@ export const IntermediaryForm = () => {
         const newCustomers = [...data.customers];
         newCustomers[index] = { ...newCustomers[index], [field]: value };
 
-        const newData = {
+        setData({
             ...data,
             customers: newCustomers
-        };
-        setData(validateModel(newData));
+        });
     };
 
     // Aktualizacja kosztów transportu
     const updateTransportCost = (supplierId: number, customerName: string, value: number) => {
-        const newData = {
+        setData({
             ...data,
             suppliers: data.suppliers.map(supplier => {
                 if (supplier.id === supplierId) {
@@ -316,25 +209,11 @@ export const IntermediaryForm = () => {
                 }
                 return supplier;
             })
-        };
-        setData(validateModel(newData));
+        });
     };
 
     const solveTransportProblem = () => {
-        const validatedData = validateModel(data);
-
-        // Sprawdź czy są jakieś błędy
-        const hasErrors =
-            validatedData.suppliers.some(s => s.errors) ||
-            validatedData.customers.some(c => c.errors) ||
-            validatedData.errors;
-
-        if (hasErrors) {
-            setData(validatedData);
-            return;
-        }
-
-        const result = proccesDataForCalculating(validatedData);
+        const result = proccesDataForCalculating(data);
         const unitProfitMatrix = unitProfitCalculator(result.transportCostsMatrix, result.purchaseCosts, result.sellingPrices);
 
         const totalDemand = result.demand.reduce((sum, current) => sum + current, 0);
@@ -384,6 +263,9 @@ export const IntermediaryForm = () => {
             allocation: currentSolution.allocation,
             unitProfitMatrix: unitProfitMatrix
         };
+
+        console.log(unitProfitMatrix);
+        console.log(currentSolution.allocation);
 
         setResults(newResults);
     };
@@ -682,48 +564,6 @@ export const IntermediaryForm = () => {
                     <Card shadow="md" p="lg" radius="md" withBorder>
                         <Title order={4} mb="md">Problem transportowy</Title>
 
-                        {/* Wyświetlanie błędów walidacji */}
-                        {(data.suppliers.some(s => s.errors) ||
-                            data.customers.some(c => c.errors) ||
-                            data.errors) && (
-                            <Alert
-                                icon={<IconAlertCircle size="1rem" />}
-                                title="Formularz zawiera błędy"
-                                color="red"
-                                mb="md"
-                            >
-                                <List size="sm">
-                                    {data.errors?.balance && (
-                                        <List.Item>{data.errors.balance}</List.Item>
-                                    )}
-                                    {data.suppliers.map((supplier) => (
-                                        supplier.errors && (
-                                            <List.Item key={`supplier-${supplier.id}`}>
-                                                {supplier.name}:
-                                                {supplier.errors.name && <Text span c="red"> {supplier.errors.name}</Text>}
-                                                {supplier.errors.supply && <Text span c="red"> {supplier.errors.supply}</Text>}
-                                                {supplier.errors.purchasePrice && <Text span c="red"> {supplier.errors.purchasePrice}</Text>}
-                                                {supplier.errors.transportCosts && Object.entries(supplier.errors.transportCosts).map(([customer, error]) => (
-                                                    <Text key={`transport-${supplier.id}-${customer}`} span c="red"> Koszt do {customer}: {error}</Text>
-                                                ))}
-                                            </List.Item>
-                                        )
-                                    ))}
-
-                                    {data.customers.map((customer) => (
-                                        customer.errors && (
-                                            <List.Item key={`customer-${customer.name}`}>
-                                                {customer.name}:
-                                                {customer.errors.name && <Text span c="red"> {customer.errors.name}</Text>}
-                                                {customer.errors.demand && <Text span c="red"> {customer.errors.demand}</Text>}
-                                                {customer.errors.sellingPrice && <Text span c="red"> {customer.errors.sellingPrice}</Text>}
-                                            </List.Item>
-                                        )
-                                    ))}
-                                </List>
-                            </Alert>
-                        )}
-
                         <Group mb="md">
                             <Button leftSection={<IconRowInsertBottom size={18} />} onClick={addSupplier} variant="outline">
                                 Dodaj dostawcę
@@ -736,11 +576,6 @@ export const IntermediaryForm = () => {
                                 onClick={solveTransportProblem}
                                 variant="filled"
                                 color="blue"
-                                disabled={
-                                    data.suppliers.some(s => s.errors) ||
-                                    data.customers.some(c => c.errors) ||
-                                    data.errors !== undefined
-                                }
                             >
                                 Rozwiąż
                             </Button>
@@ -758,7 +593,6 @@ export const IntermediaryForm = () => {
                                                     onChange={(e) => updateCustomer(index, 'name', e.target.value)}
                                                     variant="unstyled"
                                                     size="xs"
-                                                    error={customer.errors?.name}
                                                 />
                                                 {data.customers.length > 1 && (
                                                     <ActionIcon color="red" size="sm" onClick={() => removeCustomer(customer.name)}>
@@ -772,7 +606,6 @@ export const IntermediaryForm = () => {
                                                 onChange={(value) => updateCustomer(index, 'demand', Number(value))}
                                                 min={0}
                                                 size="xs"
-                                                error={customer.errors?.demand}
                                             />
                                             <NumberInput
                                                 label="Cena sprzedaży"
@@ -780,7 +613,6 @@ export const IntermediaryForm = () => {
                                                 onChange={(value) => updateCustomer(index, 'sellingPrice', Number(value))}
                                                 min={0}
                                                 size="xs"
-                                                error={customer.errors?.sellingPrice}
                                             />
                                         </Table.Th>
                                     ))}
@@ -796,7 +628,6 @@ export const IntermediaryForm = () => {
                                                     onChange={(e) => updateSupplier(supplier.id, 'name', e.target.value)}
                                                     variant="unstyled"
                                                     size="xs"
-                                                    error={supplier.errors?.name}
                                                 />
                                                 {data.suppliers.length > 1 && (
                                                     <ActionIcon color="red" size="sm" onClick={() => removeSupplier(supplier.id)}>
@@ -810,7 +641,6 @@ export const IntermediaryForm = () => {
                                                 onChange={(value) => updateSupplier(supplier.id, 'supply', Number(value))}
                                                 min={0}
                                                 size="xs"
-                                                error={supplier.errors?.supply}
                                             />
                                             <NumberInput
                                                 label="Cena kupna"
@@ -818,7 +648,6 @@ export const IntermediaryForm = () => {
                                                 onChange={(value) => updateSupplier(supplier.id, 'purchasePrice', Number(value))}
                                                 min={0}
                                                 size="xs"
-                                                error={supplier.errors?.purchasePrice}
                                             />
                                         </Table.Td>
                                         {data.customers.map((customer) => (
@@ -829,7 +658,6 @@ export const IntermediaryForm = () => {
                                                     min={0}
                                                     hideControls
                                                     variant="unstyled"
-                                                    error={supplier.errors?.transportCosts?.[customer.name]}
                                                 />
                                             </Table.Td>
                                         ))}
@@ -907,6 +735,7 @@ export const IntermediaryForm = () => {
                                     ))}
                                 </Table.Tbody>
                             </Table>
+
                         </Card>
                     )}
                 </div>
