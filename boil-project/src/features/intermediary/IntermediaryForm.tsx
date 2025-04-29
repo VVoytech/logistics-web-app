@@ -119,6 +119,7 @@ export const IntermediaryForm = () => {
     });
 
     const [results, setResults] = useState<SolutionResults>({});
+    const [check, setIsChecked] = useState<boolean>(true);
 
     const handleHome = () => navigate("/");
     const handlePost = () => navigate("/cpmpost");
@@ -349,6 +350,7 @@ export const IntermediaryForm = () => {
             unitProfitMatrix.forEach(row => {
                 row.push(0); // Dodajemy 0 do każdego wiersza
             });
+            setIsChecked(false);
         }
 
         const potentialPath = calculatePotentialPath(unitProfitMatrix, result.supply, result.demand);
@@ -384,7 +386,6 @@ export const IntermediaryForm = () => {
             allocation: currentSolution.allocation,
             unitProfitMatrix: unitProfitMatrix
         };
-
         setResults(newResults);
     };
 
@@ -548,7 +549,7 @@ export const IntermediaryForm = () => {
     };
 
     const calculateDualVariables = (solution: TransportSolution) => {
-        const { allocation, profits } = solution;
+        const {allocation, profits} = solution;
         const numSuppliers = allocation.length;
         const numCustomers = allocation[0].length;
 
@@ -558,7 +559,6 @@ export const IntermediaryForm = () => {
         // Ustawienie wartości dla fikcyjnych dostawców/odbiorców
         alpha[numSuppliers - 1] = 0;
         beta[numCustomers - 1] = 0;
-
         // Iteracyjne rozwiązywanie równań
         let changed: boolean;
         do {
@@ -874,10 +874,10 @@ export const IntermediaryForm = () => {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {results.allocation?.slice(0, -1).map((row, i) => (
+                                    {(check ? results.allocation ?? [] : results.allocation?.slice(0, -1) ?? []).map((row, i) => (
                                         <Table.Tr key={i}>
-                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i+1}`}</Table.Td>
-                                            {row.slice(0, -1).map((cell, j) => (
+                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i + 1}`}</Table.Td>
+                                            {(check ? row ?? [] : row.slice(0, -1) ?? []).map((cell, j) => (
                                                 <Table.Td key={j}>{cell}</Table.Td>
                                             ))}
                                         </Table.Tr>
@@ -885,7 +885,7 @@ export const IntermediaryForm = () => {
                                 </Table.Tbody>
                             </Table>
 
-                            {/* Tabela zysków jednostkowych (pomniejszona o ostatni wiersz i kolumnę) */}
+                            {/* Tabela zysków jednostkowych */}
                             <Title order={5} mt="xl" mb="sm">Tabela zysków jednostkowych</Title>
                             <Table striped highlightOnHover withTableBorder withColumnBorders>
                                 <Table.Thead>
@@ -897,10 +897,10 @@ export const IntermediaryForm = () => {
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
-                                    {results.unitProfitMatrix?.slice(0, -1).map((row, i) => (
+                                    {(check ? results.unitProfitMatrix ?? [] : results.unitProfitMatrix?.slice(0, -1) ?? []).map((row, i) => (
                                         <Table.Tr key={i}>
-                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i+1}`}</Table.Td>
-                                            {row.slice(0, -1).map((cell, j) => (
+                                            <Table.Td>{data.suppliers[i]?.name || `Dostawca ${i + 1}`}</Table.Td>
+                                            {(check ? row ?? [] : row.slice(0, -1) ?? []).map((cell, j) => (
                                                 <Table.Td key={j}>{cell.toFixed(2)}</Table.Td>
                                             ))}
                                         </Table.Tr>
